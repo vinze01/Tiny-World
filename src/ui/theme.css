@@ -1,0 +1,186 @@
+@import '@fontsource/pixelify-sans/700.css';
+@import '@fontsource-variable/nunito';
+
+:root {
+  --cream: #f7f0dd;
+  --cream-hi: #fffaf0;
+  --cream-lo: #e8dcc0;
+  --forest: #527a58;
+  --forest-dark: #38583d;
+  --sage: #a8c5a0;
+  --wood: #8b684b;
+  --wood-dark: #5e432d;
+  --gold: #e8c46a;
+  --gold-dark: #b88c28;
+  --sky: #a7d5e8;
+  --ink: #303d35;
+  --ink-soft: #55665b;
+  --danger: #c84a4a;
+  --font-display: 'Pixelify Sans', monospace;
+  --font-body: 'Nunito Variable', 'Nunito', system-ui, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: #1d263b;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Chrome extension popup sizing */
+body.mode-popup {
+  width: 420px;
+  height: 580px;
+}
+
+img.pixel-icon {
+  image-rendering: pixelated;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Storybook parchment panel */
+.tw-panel {
+  background: linear-gradient(180deg, var(--cream-hi) 0%, var(--cream) 100%);
+  border: 3px solid var(--wood-dark);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -3px 0 var(--cream-lo),
+    0 6px 18px rgba(18, 22, 28, 0.42);
+  color: var(--ink);
+}
+
+.tw-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--wood-dark);
+}
+
+/* Tactile wooden/parchment button */
+.tw-btn {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--ink);
+  background: linear-gradient(180deg, #fffdf6 0%, var(--cream-lo) 100%);
+  border: 2px solid var(--wood-dark);
+  border-radius: 10px;
+  padding: 6px 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: 0 2px 0 var(--wood-dark);
+  transition: transform 0.08s ease, filter 0.12s ease;
+}
+.tw-btn:hover:not(:disabled) {
+  filter: brightness(1.04);
+}
+.tw-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 var(--wood-dark);
+}
+.tw-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.tw-btn-primary {
+  background: linear-gradient(180deg, #6b9a72 0%, var(--forest) 100%);
+  color: #fffdf6;
+  border-color: var(--forest-dark);
+  box-shadow: 0 2px 0 var(--forest-dark);
+}
+.tw-btn-gold {
+  background: linear-gradient(180deg, #f7dc88 0%, var(--gold) 100%);
+  color: var(--wood-dark);
+  border-color: var(--wood-dark);
+}
+.tw-btn-danger {
+  background: linear-gradient(180deg, #e06b6b 0%, var(--danger) 100%);
+  color: #fffdf6;
+  border-color: #822525;
+  box-shadow: 0 2px 0 #822525;
+}
+.tw-btn-sm {
+  padding: 4px 8px;
+  font-size: 11.5px;
+  border-radius: 8px;
+}
+
+/* Circular medallion slot like Interface.jpg */
+.tw-medallion {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #e4d4b0 0%, #bfa67a 75%, #9a7d52 100%);
+  border: 3px solid var(--wood-dark);
+  box-shadow:
+    inset 0 2px 3px rgba(255, 255, 255, 0.55),
+    0 3px 6px rgba(25, 20, 14, 0.28);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.1s ease, border-color 0.12s ease;
+}
+.tw-medallion:hover {
+  transform: translateY(-2px);
+  border-color: var(--gold-dark);
+}
+.tw-medallion.active {
+  border-color: var(--gold);
+  box-shadow:
+    0 0 0 3px var(--wood-dark),
+    0 4px 10px rgba(0, 0, 0, 0.35);
+}
+.tw-badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 11px;
+  background: var(--forest-dark);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  border: 2px solid var(--cream-hi);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Clear keyboard focus rings for accessibility */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* Scrollbar styling inside panels */
+.tw-scroll {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--wood) transparent;
+}

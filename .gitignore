@@ -1,0 +1,14 @@
+node_modules
+dist
+figma-assets
+*.log
+*.tsbuildinfo
+.vscode
+.DS_Store
+Thumbs.db
+.env
+.env.*
+test-results
+playwright-report
+
+

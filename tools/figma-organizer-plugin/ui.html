@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>TinyWorld Workspace Organizer</title>
+    <style>
+      :root {
+        --bg: var(--figma-color-bg, #1e1b29);
+        --bg-card: var(--figma-color-bg-secondary, #2a2538);
+        --border: var(--figma-color-border, #3e3752);
+        --text: var(--figma-color-text, #f5efe0);
+        --muted: var(--figma-color-text-secondary, #b7afc9);
+        --accent: #527a58;
+        --accent-hover: #629168;
+        --gold: #d9a441;
+        --danger: #d95d5d;
+        --radius: 8px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 14px;
+        font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 12px;
+        line-height: 1.45;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      h1 {
+        margin: 0 0 4px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .subtitle {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 10px 12px;
+        margin-bottom: 10px;
+      }
+
+      .card-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 2px 7px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+        background: rgba(82, 122, 88, 0.25);
+        color: #9ae0a2;
+        border: 1px solid rgba(154, 224, 162, 0.35);
+      }
+
+      .badge.warn {
+        background: rgba(217, 164, 65, 0.22);
+        color: #f6cb78;
+        border-color: rgba(246, 203, 120, 0.4);
+      }
+
+      .badge.fail {
+        background: rgba(217, 93, 93, 0.22);
+        color: #f49a9a;
+        border-color: rgba(244, 154, 154, 0.4);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+      }
+
+      th,
+      td {
+        padding: 4px 2px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      }
+
+      tr:last-child td {
+        border-bottom: none;
+      }
+
+      .count {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+      }
+
+      .jump-btn {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 5px;
+        padding: 2px 6px;
+        font-size: 10px;
+        cursor: pointer;
+      }
+
+      .jump-btn:hover {
+        border-color: var(--gold);
+        color: #fff;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 10px;
+        font-size: 11px;
+      }
+
+      .stat-line {
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      button.primary {
+        flex: 1;
+        padding: 9px 12px;
+        border: none;
+        border-radius: var(--radius);
+        background: var(--accent);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      button.primary:hover:not(:disabled) {
+        background: var(--accent-hover);
+      }
+
+      button.primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      button.secondary {
+        padding: 9px 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg-card);
+        color: var(--text);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      #status-msg {
+        margin-top: 8px;
+        font-size: 11px;
+        color: var(--muted);
+        min-height: 16px;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      ul.uncat {
+        margin: 6px 0 0;
+        padding-left: 16px;
+        color: #f6cb78;
+        font-size: 11px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>TinyWorld Workspace Organizer</h1>
+    <p class="subtitle">
+      Moves existing uploaded frames into Pages 01&ndash;07 with labeled Sections. Zero duplication, deletion, or resizing.
+    </p>
+
+    <div class="card">
+      <div class="card-title">
+        <span>Target Structure Preview</span>
+        <span id="scan-badge" class="badge">Scanning&hellip;</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align: left">Figma Page</th>
+            <th class="count">Frames</th>
+            <th style="text-align: right">Go</th>
+          </tr>
+        </thead>
+        <tbody id="plan-rows"></tbody>
+      </table>
+    </div>
+
+    <div id="uncat-card" class="card hidden">
+      <div class="card-title">
+        <span>Uncategorized Frames (Kept Untouched)</span>
+        <span id="uncat-count" class="badge warn">0</span>
+      </div>
+      <ul id="uncat-list" class="uncat"></ul>
+    </div>
+
+    <div id="validation-card" class="card hidden">
+      <div class="card-title">
+        <span>Post-Move Validation</span>
+        <span id="val-badge" class="badge">PASSED</span>
+      </div>
+      <div class="stats-grid" id="val-stats"></div>
+    </div>
+
+    <div class="actions">
+      <button id="btn-scan" class="secondary" type="button">Rescan</button>
+      <button id="btn-run" class="primary" type="button" disabled>Organize Into 7 Pages</button>
+    </div>
+
+    <div id="status-msg">Reading open Figma document&hellip;</div>
+
+    <script>
+      const post = (msg) => parent.postMessage({ pluginMessage: msg }, '*');
+      const planRows = document.getElementById('plan-rows');
+      const scanBadge = document.getElementById('scan-badge');
+      const btnScan = document.getElementById('btn-scan');
+      const btnRun = document.getElementById('btn-run');
+      const statusMsg = document.getElementById('status-msg');
+      const uncatCard = document.getElementById('uncat-card');
+      const uncatCount = document.getElementById('uncat-count');
+      const uncatList = document.getElementById('uncat-list');
+      const valCard = document.getElementById('validation-card');
+      const valBadge = document.getElementById('val-badge');
+      const valStats = document.getElementById('val-stats');
+
+      function renderPageTable(countsMap, showJump) {
+        planRows.innerHTML = '';
+        for (const [pageName, count] of Object.entries(countsMap)) {
+          const tr = document.createElement('tr');
+          const tdName = document.createElement('td');
+          tdName.textContent = pageName;
+          const tdCount = document.createElement('td');
+          tdCount.className = 'count';
+          tdCount.textContent = String(count);
+          const tdJump = document.createElement('td');
+          tdJump.style.textAlign = 'right';
+          if (showJump) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'jump-btn';
+            btn.textContent = 'View';
+            btn.addEventListener('click', () => post({ type: 'jump-page', pageName }));
+            tdJump.appendChild(btn);
+          } else {
+            tdJump.textContent = '-';
+          }
+          tr.appendChild(tdName);
+          tr.appendChild(tdCount);
+          tr.appendChild(tdJump);
+          planRows.appendChild(tr);
+        }
+      }
+
+      function renderUncategorized(items) {
+        if (!items || items.length === 0) {
+          uncatCard.classList.add('hidden');
+          uncatList.innerHTML = '';
+          return;
+        }
+        uncatCard.classList.remove('hidden');
+        uncatCount.textContent = String(items.length);
+        uncatList.innerHTML = '';
+        for (const item of items) {
+          const li = document.createElement('li');
+          li.textContent = `${item.name} (${item.width}x${item.height}) [${item.id}]`;
+          uncatList.appendChild(li);
+        }
+      }
+
+      window.onmessage = (event) => {
+        const msg = event.data && event.data.pluginMessage;
+        if (!msg) return;
+
+        if (msg.type === 'scan-result') {
+          const r = msg.report;
+          const existingPages = new Set((r.pagesPresent || []).map((p) => p.name));
+          const alreadyHasAll = Object.keys(r.plannedCounts).every((n) => existingPages.has(n));
+          renderPageTable(r.plannedCounts, alreadyHasAll);
+          renderUncategorized(r.uncategorized);
+          scanBadge.textContent = `${r.totalFrames} frames`;
+          scanBadge.className = r.totalFrames > 0 ? 'badge' : 'badge warn';
+          btnRun.disabled = r.totalFrames === 0;
+          btnRun.textContent = alreadyHasAll ? 'Re-align 7 Pages' : 'Organize Into 7 Pages';
+          statusMsg.textContent = `${r.totalFrames} frames ready (${r.uncategorized.length} uncategorized).`;
+          return;
+        }
+
+        if (msg.type === 'organize-result') {
+          const res = msg.result;
+          renderPageTable(res.countsByPage, true);
+          renderUncategorized(res.uncategorized);
+          scanBadge.textContent = `${res.afterTotalFrames} frames`;
+          valCard.classList.remove('hidden');
+          valBadge.textContent = res.validationPassed ? 'PASSED' : 'CHECK';
+          valBadge.className = res.validationPassed ? 'badge' : 'badge fail';
+          valStats.innerHTML = `
+            <div class="stat-line"><span>Before / After</span><strong>${res.beforeTotalFrames} / ${res.afterTotalFrames}</strong></div>
+            <div class="stat-line"><span>Moved cleanly</span><strong>${res.movedCount}</strong></div>
+            <div class="stat-line"><span>Duplicates</span><strong>${res.duplicateIds.length}</strong></div>
+            <div class="stat-line"><span>Dim changes</span><strong>${res.dimensionChanges.length}</strong></div>
+            <div class="stat-line"><span>Missing IDs</span><strong>${res.missingIds.length}</strong></div>
+            <div class="stat-line"><span>Misplaced</span><strong>${res.misplaced.length}</strong></div>
+          `;
+          btnRun.disabled = false;
+          btnRun.textContent = 'Re-align 7 Pages';
+          statusMsg.textContent = res.validationPassed
+            ? `Done! Moved ${res.movedCount}/${res.beforeTotalFrames} frames into 7 pages cleanly.`
+            : 'Completed with items needing attention — inspect summary above.';
+          return;
+        }
+
+        if (msg.type === 'error') {
+          btnRun.disabled = false;
+          statusMsg.textContent = `Error: ${msg.message}`;
+        }
+      };
+
+      btnScan.addEventListener('click', () => {
+        statusMsg.textContent = 'Rescanning document\u2026';
+        post({ type: 'scan' });
+      });
+
+      btnRun.addEventListener('click', () => {
+        btnRun.disabled = true;
+        statusMsg.textContent = 'Creating pages, grouping sections, and moving frames\u2026';
+        post({ type: 'organize' });
+      });
+
+      post({ type: 'scan' });
+    </script>
+  </body>
+</html>

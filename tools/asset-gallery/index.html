@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TinyWorld — Local Figma Asset Gallery</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%232a2236'/%3E%3Crect x='4' y='5' width='8' height='6' fill='%2359a84f'/%3E%3Crect x='5' y='3' width='6' height='4' fill='%237dce63'/%3E%3Crect x='5' y='11' width='6' height='2' fill='%238c5a3c'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./gallery.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo-dot">✦</span>
+        <div>
+          <h1>TinyWorld Asset &amp; Design System Gallery</h1>
+          <p id="summary-line">Loading figma-assets/manifest.json…</p>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <a
+          id="figma-link"
+          class="btn btn-secondary"
+          href="https://www.figma.com/design/TCEjXAmLGD0mgNZc4nbWW0/Untitled"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Open Figma Project ↗
+        </a>
+        <button id="download-zip-btn" type="button" class="btn btn-primary">
+          Download Filtered Bundle (.zip)
+        </button>
+      </div>
+    </header>
+
+    <div class="view-tabs" role="tablist">
+      <button type="button" class="tab-btn active" data-view="assets">Asset Browser</button>
+      <button type="button" class="tab-btn" data-view="tokens">Design Tokens &amp; Palettes</button>
+      <button type="button" class="tab-btn" data-view="catalogs">Catalog Boards</button>
+    </div>
+
+    <main>
+      <section id="assets-view">
+        <div class="controls-bar">
+          <input
+            id="search-input"
+            type="search"
+            placeholder="Search by name, id, species, source module, or tag…"
+            aria-label="Search assets"
+          />
+
+          <select id="module-filter" aria-label="Filter by source module">
+            <option value="all">All Source Modules</option>
+          </select>
+
+          <select id="stage-filter" aria-label="Filter by unlock stage">
+            <option value="all">All Stages</option>
+            <option value="1">Stage 1</option>
+            <option value="2">Stage 2</option>
+            <option value="3">Stage 3</option>
+            <option value="4">Stage 4</option>
+            <option value="5">Stage 5</option>
+            <option value="6">Stage 6</option>
+            <option value="7">Stage 7</option>
+            <option value="8">Stage 8</option>
+            <option value="9">Stage 9</option>
+            <option value="10">Stage 10</option>
+          </select>
+
+          <label class="toggle-chip">
+            <input id="animated-only" type="checkbox" />
+            <span>Animated Only</span>
+          </label>
+
+          <div class="segmented" title="Pixel Preview Scale">
+            <span>Scale:</span>
+            <button type="button" class="seg-btn" data-scale="1">1x</button>
+            <button type="button" class="seg-btn" data-scale="2">2x</button>
+            <button type="button" class="seg-btn active" data-scale="4">4x</button>
+            <button type="button" class="seg-btn" data-scale="8">8x</button>
+          </div>
+
+          <select id="bg-mode" aria-label="Preview background">
+            <option value="checker">Bg: Checkerboard</option>
+            <option value="cream">Bg: Storybook Cream</option>
+            <option value="sky">Bg: Sky Day</option>
+            <option value="night">Bg: Starlit Night</option>
+            <option value="dark">Bg: Dark Slate</option>
+          </select>
+        </div>
+
+        <div id="category-pills" class="category-pills"></div>
+
+        <div id="assets-grid" class="assets-grid"></div>
+      </section>
+
+      <section id="tokens-view" class="hidden"></section>
+      <section id="catalogs-view" class="hidden"></section>
+    </main>
+
+    <aside id="inspector-modal" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-card">
+        <div class="modal-head">
+          <div>
+            <h2 id="insp-title">Asset Details</h2>
+            <p id="insp-subtitle"></p>
+          </div>
+          <button id="insp-close" type="button" class="btn btn-secondary">Close ✕</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="insp-preview-col">
+            <div id="insp-stage" class="insp-stage bg-checker">
+              <img id="insp-img" alt="" />
+              <canvas id="insp-canvas" class="hidden"></canvas>
+            </div>
+            <div id="scrubber-controls" class="scrubber hidden">
+              <div class="scrubber-row">
+                <button id="scrub-play" type="button" class="btn btn-primary btn-sm">Play / Pause</button>
+                <span id="scrub-frame-label">Frame 1 / 20</span>
+                <label class="fps-box">
+                  FPS
+                  <input id="scrub-fps" type="number" min="1" max="24" value="6" />
+                </label>
+              </div>
+              <input id="scrub-range" type="range" min="0" max="19" value="0" />
+            </div>
+          </div>
+
+          <div class="insp-meta-col">
+            <dl id="insp-meta" class="meta-list"></dl>
+            <h3>Exported Format Variants</h3>
+            <div id="insp-files" class="variant-list"></div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <script src="./gallery.js" type="module"></script>
+  </body>
+</html>
