@@ -73,6 +73,28 @@ npm run gallery
 
 ---
 
+## 🔒 Privacy Policy
+
+TinyWorld is an offline, local-first game. This policy applies to the TinyWorld Chrome extension.
+
+**Data we collect: none.** TinyWorld has no accounts, no analytics, no telemetry, no advertising, and it never sends any data over the network. The extension makes no external requests — all artwork, audio, fonts, and code are packaged inside the extension itself.
+
+**Data stored on your device:**
+
+- **Game progress** (Nature Tokens, island stage, placed objects, plants, creature bonds, settings) is saved locally in your browser's IndexedDB storage under the `tinyworld` database, including an automatic rolling backup that protects against data corruption.
+- **Nicknames** you type for your Pipkins are part of that same local save. Nothing else personal is stored.
+- **Optional save backups** you create via *Settings → Backup & Restore* are saved as files you choose locally; importing one is validated before it replaces your save.
+
+**Permissions:** TinyWorld requests a single permission, `sidePanel`, used only when you click *Side Panel* to dock the game next to your browser. It has no access to websites, browsing history, tabs content, or your identity.
+
+**Data deletion:** You can erase everything by removing the extension (which deletes its storage), or reset in-game via *Settings → Reset Island*. Exported save files live only where you save them.
+
+**Third-party links:** The Settings panel links to an external "Buy Me a Coffee" page, which opens only when you click it. No data is shared with that service by TinyWorld.
+
+For questions, use the Support link on the Chrome Web Store listing.
+
+---
+
 ## ☕ Support
 
 If TinyWorld brings you a little peace during a busy day, consider supporting development:

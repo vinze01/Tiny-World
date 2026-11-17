@@ -45,6 +45,8 @@ export const useGameStore = defineStore('game', () => {
   const toasts = ref<ToastItem[]>([]);
   const welcomeLines = ref<string[]>([]);
   const nowTick = ref(Date.now());
+  /** id of the 1s UI clock interval, so init() can never stack duplicates */
+  let tickTimer: number | undefined;
   let toastSeq = 1;
 
   // Hook for the live Phaser scene to play immediate visual reactions & particles
@@ -106,6 +108,12 @@ export const useGameStore = defineStore('game', () => {
     sound.configure(state.value.settings);
     if (saveStore.info.recovered === 'backup') {
       pushToast('Recovered your island from backup save.', 'warn', 4500);
+    } else if (saveStore.info.recovered === 'fresh' && saveStore.info.hadCorrupt) {
+      pushToast(
+        "Your island save was damaged and couldn't be recovered, so a fresh island was started. A copy of the damaged data was kept.",
+        'warn',
+        7000,
+      );
     }
     const { state: woken, result } = await saveStore.mutate('wake');
     state.value = woken;
@@ -119,7 +127,9 @@ export const useGameStore = defineStore('game', () => {
     });
 
     if (typeof window !== 'undefined') {
-      window.setInterval(() => {
+      // Guard against stacking a second clock if init() ever runs twice on one page.
+      if (tickTimer !== undefined) window.clearInterval(tickTimer);
+      tickTimer = window.setInterval(() => {
         nowTick.value = Date.now();
       }, 1000);
     }
@@ -153,12 +163,20 @@ export const useGameStore = defineStore('game', () => {
   const checkTutorialAdvance = (actionName: string) => {
     const t = state.value.tutorial;
     if (t.done || t.skipped) return;
+    // Fire-and-forget onboarding nudges: if storage briefly fails the step simply
+    // re-advances on the next matching action, so failures are safely retriable.
+    const advanceTutorial = (step: 3 | 4 | 5) => {
+      void saveStore.mutate('setTutorial', { step }).then(
+        (o) => (state.value = o.state),
+        () => undefined,
+      );
+    };
     if (t.step === 2 && t.tappedTree && t.tappedPond && t.tappedCreature) {
-      void saveStore.mutate('setTutorial', { step: 3 }).then((o) => (state.value = o.state));
+      advanceTutorial(3);
     } else if (t.step === 3 && actionName === 'plantSeed') {
-      void saveStore.mutate('setTutorial', { step: 4 }).then((o) => (state.value = o.state));
+      advanceTutorial(4);
     } else if (t.step === 4 && (actionName === 'placeItem' || actionName === 'moveObject' || actionName === 'moveObjects')) {
-      void saveStore.mutate('setTutorial', { step: 5 }).then((o) => (state.value = o.state));
+      advanceTutorial(5);
     }
   }
 

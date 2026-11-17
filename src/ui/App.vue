@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import {
   ITEM_BY_ID,
   PLANT_BY_ID,
@@ -36,6 +36,8 @@ const store = useGameStore();
 const showTimeMenu = ref(false);
 const showMoreCreatureActions = ref(false);
 const pendingConfirm = ref<null | 'clear' | 'sell'>(null);
+// True when the island save could not be loaded (e.g. IndexedDB unavailable)
+const initError = ref(false);
 
 watch(
   () => store.selectedObjectId,
@@ -51,8 +53,28 @@ watch(
   },
 );
 
+/** Escape closes any open panel — keyboard users shouldn't need the mouse to dismiss. */
+const onWindowKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape' && store.activeTab !== 'none') {
+    store.activeTab = 'none';
+  }
+};
+
+const retryInit = () => {
+  window.location.reload();
+};
+
 onMounted(() => {
-  void store.init(props.mode);
+  window.addEventListener('keydown', onWindowKeydown);
+  // Storage failures (private mode, quota, corrupted environment) must surface to the
+  // player instead of leaving a silent blank screen; the save itself is untouched.
+  store.init(props.mode).catch(() => {
+    initError.value = true;
+  });
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onWindowKeydown);
 });
 
 const toggleTab = (tab: ActiveTab) => {
@@ -242,7 +264,11 @@ const EXTRA_CREATURE_ACTIONS: { kind: CreatureInteractionKind; label: string }[]
 ];
 
 if (typeof window !== 'undefined') {
-  (window as unknown as { __twStore?: unknown }).__twStore = store;
+  // Test/dev bridge: exposed in dev builds and E2E runs (?e2e=1) only.
+  // Production pages never receive a global handle into game state.
+  if (!import.meta.env.PROD || new URLSearchParams(window.location.search).has('e2e')) {
+    (window as unknown as { __twStore?: unknown }).__twStore = store;
+  }
 }
 
 const canRotatePlacement = computed(() => {
@@ -345,6 +371,20 @@ const groupMoveStatus = computed(() => {
 <template>
   <div class="app-shell" :class="`surface-${props.mode}`">
     <WorldCanvas v-if="store.ready" />
+
+    <!-- Load-failure screen: keeps the player informed instead of a silent blank page -->
+    <div v-if="initError" class="init-error-backdrop">
+      <div class="init-error tw-panel" role="alert">
+        <img class="init-error-icon" :src="iconUrl('ui:token')" alt="" width="36" height="36" />
+        <h2 class="tw-title">TinyWorld couldn't wake up</h2>
+        <p>
+          Your island lives in this browser's local storage, which isn't responding right now
+          (private browsing or storage restrictions can cause this). Your saved progress has
+          not been deleted.
+        </p>
+        <button type="button" class="tw-btn tw-btn-gold" @click="retryInit">Try Again</button>
+      </div>
+    </div>
 
     <!-- TOP HUD & QUICK GARDEN BAR -->
     <div class="hud-top-stack">
@@ -960,6 +1000,34 @@ const groupMoveStatus = computed(() => {
 </template>
 
 <style scoped>
+/* Load-failure screen */
+.init-error-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(26, 22, 38, 0.82);
+}
+.init-error {
+  max-width: 420px;
+  padding: 24px 26px;
+  text-align: center;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
+.init-error p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.init-error-icon {
+  image-rendering: pixelated;
+}
+
 .app-shell {
   position: relative;
   width: 100%;

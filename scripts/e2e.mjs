@@ -56,8 +56,8 @@ try {
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
 
-  // 1. Open Full-Page Game
-  await page.goto(`${url}/game.html`, { waitUntil: 'networkidle' });
+  // 1. Open Full-Page Game (?e2e=1 exposes the __twStore test bridge; production pages don't have it)
+  await page.goto(`${url}/game.html?e2e=1`, { waitUntil: 'networkidle' });
   await page.waitForSelector('.world-canvas canvas', { timeout: 30000 });
   await page.waitForTimeout(700);
   await page.screenshot({ path: resolve(SHOTS, '01-full-onboarding.png') });
@@ -502,7 +502,7 @@ try {
   // 8. Open Popup surface simultaneously and verify shared persisted state + non-overlapping toast/HUD layout
   const popupPage = await context.newPage();
   await popupPage.setViewportSize({ width: 420, height: 580 });
-  await popupPage.goto(`${url}/popup.html`, { waitUntil: 'networkidle' });
+  await popupPage.goto(`${url}/popup.html?e2e=1`, { waitUntil: 'networkidle' });
   await popupPage.waitForSelector('.world-canvas canvas');
   await popupPage.evaluate(() => {
     window.__twStore.toasts.push({ id: 999, text: 'Test toast notification spacing', kind: 'info' });
@@ -531,7 +531,7 @@ try {
   // 9. Open Side Panel surface and verify
   const sidePage = await context.newPage();
   await sidePage.setViewportSize({ width: 380, height: 720 });
-  await sidePage.goto(`${url}/sidepanel.html`, { waitUntil: 'networkidle' });
+  await sidePage.goto(`${url}/sidepanel.html?e2e=1`, { waitUntil: 'networkidle' });
   await sidePage.waitForSelector('.world-canvas canvas');
   await sidePage.waitForTimeout(500);
   await checkHudBalance(sidePage, 'Side Panel');
