@@ -376,7 +376,7 @@ const groupMoveStatus = computed(() => {
     <div v-if="initError" class="init-error-backdrop">
       <div class="init-error tw-panel" role="alert">
         <img class="init-error-icon" :src="iconUrl('ui:token')" alt="" width="36" height="36" />
-        <h2 class="tw-title">TinyWorld couldn't wake up</h2>
+        <h2 class="tw-title">Tiny World couldn't wake up</h2>
         <p>
           Your island lives in this browser's local storage, which isn't responding right now
           (private browsing or storage restrictions can cause this). Your saved progress has
@@ -421,7 +421,7 @@ const groupMoveStatus = computed(() => {
               v-if="props.mode !== 'full'"
               type="button"
               class="tw-btn tw-btn-primary"
-              title="Open Full-Page TinyWorld"
+              title="Open Full-Page Tiny World"
               @click="openFullWorld"
             >
               Full World ↗

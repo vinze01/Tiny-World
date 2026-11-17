@@ -17,7 +17,7 @@ export async function runExportPipeline(options: {
   const distDir = resolve(rootDir, 'dist');
   mkdirSync(outDir, { recursive: true });
 
-  console.log('1/4 Discovering TinyWorld visual assets & exporting procedural art...');
+  console.log('1/4 Discovering Tiny World visual assets & exporting procedural art...');
   const { records, stats: nodeStats } = renderProceduralAssets(rootDir, outDir, { force: options.force });
   console.log(
     `    Node assets: ${nodeStats.exported} exported, ${nodeStats.cached} cached (${nodeStats.filesWritten} files written), ${nodeStats.errors} errors`,

@@ -1,8 +1,8 @@
-# TinyWorld — Figma Integration & Code-to-Figma Asset Pipeline
+# Tiny World — Figma Integration & Code-to-Figma Asset Pipeline
 
 ## Overview
 
-TinyWorld synthesizes its visual artwork procedurally in TypeScript (`src/art/`, `src/game/`, `src/ui/`). Because no external PNG sprite sheets or Figma source files exist by default, the Code-to-Figma export pipeline renders, packages, validates, and catalogs **every** visual asset, UI screen, design token, and island scene into import-ready files for the target Figma workspace:
+Tiny World synthesizes its visual artwork procedurally in TypeScript (`src/art/`, `src/game/`, `src/ui/`). Because no external PNG sprite sheets or Figma source files exist by default, the Code-to-Figma export pipeline renders, packages, validates, and catalogs **every** visual asset, UI screen, design token, and island scene into import-ready files for the target Figma workspace:
 
 - **Target Figma Project**: `https://www.figma.com/design/TCEjXAmLGD0mgNZc4nbWW0/Untitled`
 
@@ -112,7 +112,7 @@ Inside `https://www.figma.com/design/TCEjXAmLGD0mgNZc4nbWW0/Untitled`, organize 
    Use the included offline-safe Figma development plugin in [`tools/figma-organizer-plugin/`](../tools/figma-organizer-plugin/manifest.json) to move all uploaded frames from `Page 1` into `01 — Design System` through `07 — Concepts & Future Designs` with labeled Sections and automatic pre/post validation (zero duplication, deletion, or resizing):
    - Open your file in **Figma Desktop App**.
    - Run **Plugins → Development → Import plugin from manifest...** and select `tools/figma-organizer-plugin/manifest.json`.
-   - Launch **Plugins → Development → TinyWorld Workspace Organizer**, verify the scanned counts (`94` frames), and click **Organize Into 7 Pages**.
+   - Launch **Plugins → Development → Tiny World Workspace Organizer**, verify the scanned counts (`94` frames), and click **Organize Into 7 Pages**.
 3. **Manual Batch Drag-and-Drop (Crisp Pixel Art)**:
    - Always drag **`@4x.png`** files (or `.svg` icons/sprites) onto your Figma canvas rather than scaling `1x` PNGs manually in Figma—Figma uses bilinear smoothing when resizing small bitmaps unless pre-scaled by an integer factor with nearest-neighbor sampling.
    - Drag animated **`.gif`** files directly from `creatures/animations/`, `plants/previews/`, or `effects/` into Figma Prototype frames for live looping animation previews.
@@ -137,7 +137,7 @@ Open `http://127.0.0.1:4178` in your browser to:
 - Browse visual **Design Tokens** swatches and **Catalog Boards**
 - Download individual PNG/SVG/GIF/APNG variants or click **Download Filtered Bundle (.zip)** to pack filtered assets into a single archive for drag-and-drop into Figma.
 
-## 7. Designing New Visuals in Figma (TinyWorld Constraints)
+## 7. Designing New Visuals in Figma (Tiny World Constraints)
 
 When drafting new sprites or UI updates inside `07 — Concepts & Future Designs`:
 

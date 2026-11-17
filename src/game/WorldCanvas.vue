@@ -61,7 +61,7 @@ onBeforeUnmount(() => {
     ref="host"
     class="world-canvas"
     role="application"
-    aria-label="TinyWorld miniature floating island. Use arrow keys or WASD to move the tile cursor, Enter or Space to interact, R to rotate items."
+    aria-label="Tiny World miniature floating island. Use arrow keys or WASD to move the tile cursor, Enter or Space to interact, R to rotate items."
     tabindex="0"
   />
 </template>

@@ -1,7 +1,7 @@
-# TinyWorld — Art Direction & Visual Design System
+# Tiny World — Art Direction & Visual Design System
 
 ## 1. Visual Identity & Aesthetic Goals
-TinyWorld portrays a handcrafted miniature floating island diorama viewed from a 2:1 isometric perspective. Drawing conceptual inspiration from the reference artwork (`World.jpg`, `Atmosphere.jpg`, `Surroundings.jpg`, and `Interface.jpg`), the art direction balances:
+Tiny World portrays a handcrafted miniature floating island diorama viewed from a 2:1 isometric perspective. Drawing conceptual inspiration from the reference artwork (`World.jpg`, `Atmosphere.jpg`, `Surroundings.jpg`, and `Interface.jpg`), the art direction balances:
 - **Layered Isometric Diorama (`World.jpg` & `Atmosphere.jpg`)**: A rounded floating island with lush grass edges, recessed water pond, cobblestone building plot, hanging vines, and a tapered underside of hexagonal basalt columns fading into cool atmospheric shadow.
 - **Bold, Readable Pixel Art (`Surroundings.jpg`)**: Crisp nearest-neighbor sprites with dark plum outlines (`#2A2236`), painterly 4-tone foliage clusters, and top-left directional lighting.
 - **Storybook Parchment & Medallion UI (`Interface.jpg`)**: Warm cream parchment cards, dark wood borders, circular bronze/gold item medallions, and golden token banners that keep the island as the visual centerpiece.

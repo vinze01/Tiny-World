@@ -1,8 +1,8 @@
-# TinyWorld — Testing & QA Guide
+# Tiny World — Testing & QA Guide
 
 ## 1. Automated Test Suite Overview
 
-TinyWorld uses a two-tier automated verification strategy:
+Tiny World uses a two-tier automated verification strategy:
 1. **Vitest Unit & Integration Suite (`npm test`)**: **68 fast, deterministic tests across 6 test files** covering pure game rules, economy, plant relocation, atomic multi-select group moves, obstacle clearing, 50% selling, batch gardening (`waterAll`/`harvestAll`), Stages 1–10 coordinate invariance and unified green meadow terrain, player-customized terrain patches (`grass_patch`, `snow_patch`, `sand_patch`) with neighbor-aware edge blending masks and non-destructive under-placement, rotation (`rotateObject` + textures) across 23 dedicated directional items, 15 Pipkins + annoyance/10-action interactions, separated weather transitions, offline progression, clock edge cases, `v1 → v2` schema migrations, corruption recovery, multi-window IndexedDB concurrency, Figma asset export codecs/parity, and the local Figma organizer plugin.
 2. **Playwright Real-Browser E2E Suite (`npm run test:e2e`)**: Launches headless Chrome/Edge against the production build (`dist/`), exercises `game.html`, `popup.html`, and `sidepanel.html`, verifies zero runtime/page errors, exercises Shop purchase, 50% Bag resale, Terrain patch purchase & placement (`customTerrain` persistence), plant relocation, atomic multi-select group moves, obstacle clearing rewards, asserts cross-window token synchronization, checks popup HUD vs toast spacing, and saves visual inspection screenshots in `test-results/`.
 

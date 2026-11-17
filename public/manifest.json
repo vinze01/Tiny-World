@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "TinyWorld",
+  "name": "Tiny World",
   "version": "1.0.0",
   "description": "A little world, just for you. A cozy miniature floating island to visit whenever you need a short break.",
   "minimum_chrome_version": "116",
   "action": {
-    "default_title": "TinyWorld",
+    "default_title": "Tiny World",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",

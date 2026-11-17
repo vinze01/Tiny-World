@@ -737,9 +737,9 @@ export function renderProceduralAssets(
 }
 
 function buildFigmaReadme(audit: ReturnType<typeof runDiscoveryAudit>): string {
-  return `# TinyWorld — Figma Import Asset Bundle
+  return `# Tiny World — Figma Import Asset Bundle
 
-Auto-generated from TinyWorld TypeScript procedural art & UI sources via \`npm run export:figma\`.
+Auto-generated from Tiny World TypeScript procedural art & UI sources via \`npm run export:figma\`.
 
 - **Target Figma File**: ${FIGMA_TARGET_URL}
 - **Discovered Totals**: ${audit.creatureCount} Pipkin species, ${audit.plantCount} plants, ${audit.itemCount} shop & scenery items, ${audit.stageCount} island progression stages

@@ -53,7 +53,7 @@ const quickStartDecor = async () => {
 
     <!-- Step 0: Welcome -->
     <div v-if="step === 0" class="step-body">
-      <h3 class="tw-title">Welcome to TinyWorld</h3>
+      <h3 class="tw-title">Welcome to Tiny World</h3>
       <p>
         A little floating island, just for you. Visit whenever you want a peaceful break—your world
         evolves gently without stress or timers.
@@ -140,7 +140,7 @@ const quickStartDecor = async () => {
         10 magical island biomes. Your island saves automatically and evolves between visits.
       </p>
       <button type="button" class="tw-btn tw-btn-primary" @click="store.advanceTutorial(6)">
-        Enjoy TinyWorld ✨
+        Enjoy Tiny World ✨
       </button>
     </div>
   </aside>

@@ -1,7 +1,7 @@
 {
   "name": "tinyworld",
   "version": "1.0.0",
-  "description": "TinyWorld - a little world, just for you. Cozy Chrome extension game.",
+  "description": "Tiny World - a little world, just for you. Cozy Chrome extension game.",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",

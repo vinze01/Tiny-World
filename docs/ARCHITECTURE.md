@@ -1,7 +1,7 @@
-# TinyWorld — System Architecture
+# Tiny World — System Architecture
 
 ## 1. Architectural Overview
-TinyWorld is a Chrome Manifest V3 extension structured into four cleanly separated layers so that all gameplay rules remain 100% deterministic, offline-capable, and unit-testable without a DOM or WebGL context:
+Tiny World is a Chrome Manifest V3 extension structured into four cleanly separated layers so that all gameplay rules remain 100% deterministic, offline-capable, and unit-testable without a DOM or WebGL context:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐

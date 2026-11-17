@@ -43,7 +43,7 @@ const downloadSave = () => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `tinyworld-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `tiny-world-backup-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -310,7 +310,7 @@ const doReset = async () => {
       <div class="support-copy">
         <h3 class="sec-title">Support the Developer</h3>
         <p class="support-text">
-          I've had a lot of fun bringing TinyWorld to life, and I hope you've enjoyed playing it too! If you'd like to support the project, consider buying me a coffee. 💛
+          I've had a lot of fun bringing Tiny World to life, and I hope you've enjoyed playing it too! If you'd like to support the project, consider buying me a coffee. 💛
         </p>
       </div>
       <a

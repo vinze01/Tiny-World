@@ -1,5 +1,5 @@
 /**
- * Tiny pixel-art painter. All TinyWorld artwork is generated from code with this class so the
+ * Tiny pixel-art painter. All Tiny World artwork is generated from code with this class so the
  * game has zero binary art dependencies and a perfectly consistent pixel grid.
  * Colours are 0xRRGGBB numbers.
  */

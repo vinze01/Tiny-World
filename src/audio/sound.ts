@@ -1,5 +1,5 @@
 /**
- * Lightweight procedural Web Audio synthesizer for TinyWorld.
+ * Lightweight procedural Web Audio synthesizer for Tiny World.
  * Enabled by default (new saves); audio starts after the first user gesture per autoplay policy.
  */
 

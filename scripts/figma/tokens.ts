@@ -157,7 +157,7 @@ export function buildTokensBundle(rootDir: string): GeneratedTokensBundle {
   const designTokens = {
     $schema: 'https://tr.designtokens.org/format/',
     meta: {
-      project: 'TinyWorld',
+      project: 'Tiny World',
       figmaUrl: FIGMA_TARGET_URL,
       sourceFiles: [
         'src/ui/theme.css',
@@ -245,7 +245,7 @@ export function buildTokensBundle(rootDir: string): GeneratedTokensBundle {
     targetFigmaFile: FIGMA_TARGET_URL,
     collections: [
       {
-        name: 'TinyWorld / UI Storybook Theme',
+        name: 'Tiny World / UI Storybook Theme',
         modes: ['Default (Storybook Cream)'],
         variables: Object.entries(colorTokens).map(([name, tok]) => ({
           name: `ui/${name}`,
@@ -255,7 +255,7 @@ export function buildTokensBundle(rootDir: string): GeneratedTokensBundle {
         })),
       },
       {
-        name: 'TinyWorld / Pixel Art Master Palette',
+        name: 'Tiny World / Pixel Art Master Palette',
         modes: ['Master'],
         variables: [
           { name: 'art/outline', type: 'COLOR', value: numToHex(OUTLINE), description: 'Global sprite outline' },
@@ -268,7 +268,7 @@ export function buildTokensBundle(rootDir: string): GeneratedTokensBundle {
         ],
       },
       {
-        name: 'TinyWorld / Day Cycle Sky Modes',
+        name: 'Tiny World / Day Cycle Sky Modes',
         modes: ['morning', 'day', 'sunset', 'night'],
         variables: BIOMES.flatMap((biome) => [
           {

@@ -1,4 +1,4 @@
-# TinyWorld — Development Roadmap
+# Tiny World — Development Roadmap
 
 ## Implemented in v1.0.0 (Current Release)
 - **All 10 Playable Island Stages & Biomes (`8×8` through `36×36`)**:

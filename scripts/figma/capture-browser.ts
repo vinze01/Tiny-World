@@ -476,7 +476,7 @@ async function renderCatalogBoards(
 <body>
   <header>
     <div>
-      <h1>TinyWorld — ${title}</h1>
+      <h1>Tiny World — ${title}</h1>
       <p>${subtitle}</p>
     </div>
     <div class="stamp">Figma Safe Board · Pixel-Exact Nearest Scaling</div>

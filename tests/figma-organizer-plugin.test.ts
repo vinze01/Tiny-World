@@ -6,7 +6,7 @@ import '../tools/figma-organizer-plugin/code.js';
 const plugin = (globalThis as Record<string, any>).__twOrganizerExports;
 
 const REAL_94_FRAMES = [
-  ['7:2', 'Catalog \u00e2\u20ac\u201d All TinyWorld Assets', 2400, 2535],
+  ['7:2', 'Catalog \u00e2\u20ac\u201d All Tiny World Assets', 2400, 2535],
   ['7:3', 'UI Vector - Button States', 560, 180],
   ['7:34', 'UI Vector - Sky Gradients', 680, 240],
   ['7:115', 'UI Vector - Medallion', 280, 140],
@@ -209,7 +209,7 @@ function createMockFigma(frames: ReadonlyArray<readonly [string, string, number,
   return { mockFigma, root, page1 };
 }
 
-describe('TinyWorld Figma Organizer Local Plugin', () => {
+describe('Tiny World Figma Organizer Local Plugin', () => {
   it('validates manifest.json and HTML contract for dynamic-page Figma execution', () => {
     const manifest = JSON.parse(readFileSync(resolve('tools/figma-organizer-plugin/manifest.json'), 'utf8'));
     const html = readFileSync(resolve('tools/figma-organizer-plugin/ui.html'), 'utf8');
@@ -268,7 +268,7 @@ describe('TinyWorld Figma Organizer Local Plugin', () => {
 
     // Verify UTF-8 mojibake fix on 7:2 Catalog frame
     const indexSec = page01.children.find((s: any) => s.name === 'Master Asset Index');
-    expect(indexSec.children[0].name).toBe('Catalog \u2014 All TinyWorld Assets');
+    expect(indexSec.children[0].name).toBe('Catalog \u2014 All Tiny World Assets');
 
     // Verify Page 03 groups Pipkins by species with Vector left of Poses and vertically centered
     const page03 = root.children[2];
@@ -304,14 +304,14 @@ describe('TinyWorld Figma Organizer Local Plugin', () => {
     expect(secondRun.countsByPage).toEqual(result.countsByPage);
   });
 
-  it('normalizes both Latin-1 C1 and Windows-1252 mojibake on Catalog - All TinyWorld Assets', () => {
-    expect(plugin.normalizeFrameName('Catalog \u00e2\u0080\u0094 All TinyWorld Assets')).toBe(
-      'Catalog \u2014 All TinyWorld Assets',
+  it('normalizes both Latin-1 C1 and Windows-1252 mojibake on Catalog - All Tiny World Assets', () => {
+    expect(plugin.normalizeFrameName('Catalog \u00e2\u0080\u0094 All Tiny World Assets')).toBe(
+      'Catalog \u2014 All Tiny World Assets',
     );
-    expect(plugin.normalizeFrameName('Catalog \u00e2\u20ac\u201d All TinyWorld Assets')).toBe(
-      'Catalog \u2014 All TinyWorld Assets',
+    expect(plugin.normalizeFrameName('Catalog \u00e2\u20ac\u201d All Tiny World Assets')).toBe(
+      'Catalog \u2014 All Tiny World Assets',
     );
-    expect(plugin.classifyFrame('Catalog \u00e2\u0080\u0094 All TinyWorld Assets')).toMatchObject({
+    expect(plugin.classifyFrame('Catalog \u00e2\u0080\u0094 All Tiny World Assets')).toMatchObject({
       pageKey: '01',
       section: 'Master Asset Index',
     });

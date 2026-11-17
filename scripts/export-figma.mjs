@@ -33,7 +33,7 @@ try {
     skipBrowser,
   });
   console.log(
-    `\nTinyWorld Figma export ${ok ? 'COMPLETE' : 'FAILED'}: ${manifest.summary.totalAssets} assets (${manifest.summary.totalFiles} files) in figma-assets/`,
+    `\nTiny World Figma export ${ok ? 'COMPLETE' : 'FAILED'}: ${manifest.summary.totalAssets} assets (${manifest.summary.totalFiles} files) in figma-assets/`,
   );
   if (!ok) process.exitCode = 1;
 } finally {

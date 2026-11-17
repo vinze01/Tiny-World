@@ -1,4 +1,4 @@
-# AGENTS.md — Contributor & Agent Guide for TinyWorld
+# AGENTS.md — Contributor & Agent Guide for Tiny World
 
 ## Repository Structure
 - `src/core/` — **Pure TypeScript game logic** (zero DOM, Vue, or Phaser imports).

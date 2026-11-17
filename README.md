@@ -1,6 +1,6 @@
-# TinyWorld — A little world, just for you.
+# Tiny World — A little world, just for you.
 
-**TinyWorld** is a cozy miniature floating-island game delivered as a Google Chrome Manifest V3 extension. Designed for short, peaceful breaks (30 seconds to 5 minutes), it gives you a handcrafted pixel-art diorama with **15** expressive **Pipkin** creatures, offline-progressing plants, customizable decorations and isometric buildings across **10 playable biome stages**, a gentle day/night cycle with ambient weather, and delightful random world events.
+**Tiny World** is a cozy miniature floating-island game delivered as a Google Chrome Manifest V3 extension. Designed for short, peaceful breaks (30 seconds to 5 minutes), it gives you a handcrafted pixel-art diorama with **15** expressive **Pipkin** creatures, offline-progressing plants, customizable decorations and isometric buildings across **10 playable biome stages**, a gentle day/night cycle with ambient weather, and delightful random world events.
 
 ---
 
@@ -40,7 +40,7 @@ This compiles TypeScript, verifies Vue templates via `vue-tsc`, and outputs the 
 1. Open Google Chrome and navigate to `chrome://extensions/`.
 2. Enable **Developer mode** (toggle in the top-right corner).
 3. Click **Load unpacked** and select the `dist/` folder inside this repository.
-4. Pin **TinyWorld** to your Chrome toolbar and click the island icon to open the popup—or click **Full World ↗** / **Side Panel** from inside the popup!
+4. Pin **Tiny World** to your Chrome toolbar and click the island icon to open the popup—or click **Full World ↗** / **Side Panel** from inside the popup!
 
 ### 3. Run Automated Tests & Dev Asset Tools
 ```bash
@@ -75,9 +75,9 @@ npm run gallery
 
 ## 🔒 Privacy Policy
 
-TinyWorld is an offline, local-first game. This policy applies to the TinyWorld Chrome extension.
+Tiny World is an offline, local-first game. This policy applies to the Tiny World Chrome extension.
 
-**Data we collect: none.** TinyWorld has no accounts, no analytics, no telemetry, no advertising, and it never sends any data over the network. The extension makes no external requests — all artwork, audio, fonts, and code are packaged inside the extension itself.
+**Data we collect: none.** Tiny World has no accounts, no analytics, no telemetry, no advertising, and it never sends any data over the network. The extension makes no external requests — all artwork, audio, fonts, and code are packaged inside the extension itself.
 
 **Data stored on your device:**
 
@@ -85,11 +85,11 @@ TinyWorld is an offline, local-first game. This policy applies to the TinyWorld 
 - **Nicknames** you type for your Pipkins are part of that same local save. Nothing else personal is stored.
 - **Optional save backups** you create via *Settings → Backup & Restore* are saved as files you choose locally; importing one is validated before it replaces your save.
 
-**Permissions:** TinyWorld requests a single permission, `sidePanel`, used only when you click *Side Panel* to dock the game next to your browser. It has no access to websites, browsing history, tabs content, or your identity.
+**Permissions:** Tiny World requests a single permission, `sidePanel`, used only when you click *Side Panel* to dock the game next to your browser. It has no access to websites, browsing history, tabs content, or your identity.
 
 **Data deletion:** You can erase everything by removing the extension (which deletes its storage), or reset in-game via *Settings → Reset Island*. Exported save files live only where you save them.
 
-**Third-party links:** The Settings panel links to an external "Buy Me a Coffee" page, which opens only when you click it. No data is shared with that service by TinyWorld.
+**Third-party links:** The Settings panel links to an external "Buy Me a Coffee" page, which opens only when you click it. No data is shared with that service by Tiny World.
 
 For questions, use the Support link on the Chrome Web Store listing.
 
@@ -97,7 +97,7 @@ For questions, use the Support link on the Chrome Web Store listing.
 
 ## ☕ Support
 
-If TinyWorld brings you a little peace during a busy day, consider supporting development:
+If Tiny World brings you a little peace during a busy day, consider supporting development:
 
 - **[Buy Me a Coffee](https://buymeacoffee.com/vinze)** ☕ — every cup helps keep the Pipkins happy!
 

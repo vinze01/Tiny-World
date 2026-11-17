@@ -1,4 +1,4 @@
-# TinyWorld — Pipkin Creatures Guide
+# Tiny World — Pipkin Creatures Guide
 
 Pipkins are tiny magical creatures that live peacefully on floating islands. Each Pipkin has a distinct silhouette, color palette, animation profile, personality-weighted finite-state machine, and organic discovery condition.
 

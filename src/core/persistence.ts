@@ -245,7 +245,7 @@ export class SaveStore {
 }
 
 export const previewImport = (json: string, now = Date.now()): { ok: true; state: GameState } | { ok: false; error: string } => {
-  if (json.length > 5_000_000) return { ok: false, error: 'That file is too large to be a TinyWorld backup.' };
+  if (json.length > 5_000_000) return { ok: false, error: 'That file is too large to be a Tiny World backup.' };
   let parsed: unknown;
   try {
     parsed = JSON.parse(json);
@@ -253,8 +253,8 @@ export const previewImport = (json: string, now = Date.now()): { ok: true; state
     return { ok: false, error: 'That file is not valid JSON.' };
   }
   const f = parsed as Partial<ExportFile>;
-  if (!f || f.app !== 'tinyworld' || typeof f.format !== 'number') return { ok: false, error: "That doesn't look like a TinyWorld backup." };
-  if (f.format > 1) return { ok: false, error: 'This backup was made by a newer version of TinyWorld.' };
+  if (!f || f.app !== 'tinyworld' || typeof f.format !== 'number') return { ok: false, error: "That doesn't look like a Tiny World backup." };
+  if (f.format > 1) return { ok: false, error: 'This backup was made by a newer version of Tiny World.' };
   const state = validateState(f.state, now);
   if (!state) return { ok: false, error: 'The backup is damaged or incompatible.' };
   return { ok: true, state };

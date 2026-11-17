@@ -664,7 +664,7 @@ export function buildPlannedInventory(): AssetRecord[] {
 
   records.push({
     id: 'ui-tokens:design-tokens',
-    name: 'TinyWorld Design Tokens & Figma Variables',
+    name: 'Tiny World Design Tokens & Figma Variables',
     category: 'ui',
     subcategory: 'tokens',
     kind: 'token',

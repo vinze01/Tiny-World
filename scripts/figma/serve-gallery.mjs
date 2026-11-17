@@ -77,7 +77,7 @@ export function startGalleryServer(listenPort = port, listenHost = host) {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const { url } = await startGalleryServer();
-  console.log(`TinyWorld Local Asset Gallery running at ${url}`);
+  console.log(`Tiny World Local Asset Gallery running at ${url}`);
   if (!existsSync(join(assetsDir, 'manifest.json'))) {
     console.warn('Note: figma-assets/manifest.json not found yet. Run "npm run export:figma" first.');
   }

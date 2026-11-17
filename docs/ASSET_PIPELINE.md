@@ -1,7 +1,7 @@
-# TinyWorld — Procedural Pixel-Art Asset Pipeline
+# Tiny World — Procedural Pixel-Art Asset Pipeline
 
 ## Overview
-TinyWorld generates 100% of its pixel-art sprites, isometric buildings, multi-stage plants, animated creature sprite sheets, UI icons, and Chrome extension icons programmatically from deterministic TypeScript modules under `src/art/`.
+Tiny World generates 100% of its pixel-art sprites, isometric buildings, multi-stage plants, animated creature sprite sheets, UI icons, and Chrome extension icons programmatically from deterministic TypeScript modules under `src/art/`.
 
 This architecture guarantees:
 1. **Zero Copyright or Licensing Risk**: Every pixel is original and synthesized locally.

@@ -217,7 +217,7 @@ const totalDiscovered = computed(() =>
       </div>
       <div v-else class="expand-box">
         <h3 class="tw-title">Final Island Stage Reached!</h3>
-        <p>Your floating sanctuary spans all {{ MAX_PLAYABLE_STAGE }} realms of TinyWorld.</p>
+        <p>Your floating sanctuary spans all {{ MAX_PLAYABLE_STAGE }} realms of Tiny World.</p>
       </div>
 
       <div class="stage-list">

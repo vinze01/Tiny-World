@@ -1,7 +1,7 @@
-# TinyWorld — Game Design Document
+# Tiny World — Game Design Document
 
 ## 1. Core Gameplay Loop (30 Seconds to 5 Minutes)
-1. **Visit**: Open TinyWorld via the toolbar popup, side panel, or full-page tab.
+1. **Visit**: Open Tiny World via the toolbar popup, side panel, or full-page tab.
 2. **Observe**: See the current time of day (Morning, Daytime, Sunset, Night), weather, newly bloomed flowers, and Pipkins wandering or napping.
 3. **Collect**: Tap sparkling event pickups, shake the Great Old Tree for acorns, splash the pond, or harvest blooming flowers for **Nature Tokens**.
 4. **Interact**: Pet, feed Berry Treats to, or interact with all **15 Pipkins** via 10 contextual actions (`Pet`, `Feed`, `Play`, `Wave`, `Call`, `Observe`, `Gift`, `Cheer`, `Follow`, `Rest`), monitor their mood, and level up affection.

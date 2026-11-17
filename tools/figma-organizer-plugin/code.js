@@ -1,4 +1,4 @@
-// TinyWorld Workspace Organizer — Local Figma Plugin (Dynamic-Page Safe)
+// Tiny World Workspace Organizer — Local Figma Plugin (Dynamic-Page Safe)
 // Organizes existing uploaded frames on Page 1 into 7 structured Figma pages
 // without cloning, deleting, resizing, or regenerating any original artwork.
 
@@ -120,8 +120,8 @@ function normalizeFrameName(rawName) {
     .replace(/\u00e2\u20ac\u201d/g, '\u2014')
     .replace(/\u00e2\u0080\u0094/g, '\u2014')
     .trim();
-  if (/^Catalog\s+\S{1,6}\s+All TinyWorld Assets$/i.test(name)) {
-    name = 'Catalog \u2014 All TinyWorld Assets';
+  if (/^Catalog\s+\S{1,6}\s+All Tiny World Assets$/i.test(name)) {
+    name = 'Catalog \u2014 All Tiny World Assets';
   }
   return name;
 }
@@ -139,7 +139,7 @@ function classifyFrame(rawName) {
   const name = normalizeFrameName(rawName);
 
   // Page 01 — Design System
-  if (name === 'Catalog \u2014 All TinyWorld Assets' || name === 'Catalog - All TinyWorld Assets') {
+  if (name === 'Catalog \u2014 All Tiny World Assets' || name === 'Catalog - All Tiny World Assets') {
     return { pageKey: '01', section: 'Master Asset Index', order: 0, species: null, kind: 'catalog' };
   }
   if (name === 'UI Vector - Sky Gradients') {
@@ -777,7 +777,7 @@ function bootPlugin() {
 
   if (typeof figma.root.setRelaunchData === 'function') {
     figma.root.setRelaunchData({
-      organize: 'Organize TinyWorld frames into Pages 01-07',
+      organize: 'Organize Tiny World frames into Pages 01-07',
     });
   }
 
@@ -794,8 +794,8 @@ function bootPlugin() {
         figma.ui.postMessage({ type: 'organize-result', result });
         figma.notify(
           result.validationPassed
-            ? `TinyWorld organized: ${result.movedCount} frames across 7 pages (0 errors).`
-            : `TinyWorld finished with ${result.uncategorized.length} uncategorized / check panel.`,
+            ? `Tiny World organized: ${result.movedCount} frames across 7 pages (0 errors).`
+            : `Tiny World finished with ${result.uncategorized.length} uncategorized / check panel.`,
         );
         return;
       }
