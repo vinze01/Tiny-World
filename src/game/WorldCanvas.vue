@@ -50,6 +50,9 @@ onBeforeUnmount(() => {
   ro?.disconnect();
   game?.destroy(true);
   game = null;
+  // Drop closures into the destroyed scene so the outliving store can never
+  // call into dead Phaser objects after the canvas is gone.
+  store.worldHooks = {};
 });
 </script>
 

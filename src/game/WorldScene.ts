@@ -349,7 +349,7 @@ export class WorldScene extends Phaser.Scene {
     const cell = worldToCell(wx, wy);
     const bm = this.store.buildMode;
     if (bm.kind !== 'none') {
-      void this.store.commitPlacementAt(cell.gx, cell.gy);
+      this.fireAction(this.store.commitPlacementAt(cell.gx, cell.gy));
       return;
     }
 
@@ -360,7 +360,7 @@ export class WorldScene extends Phaser.Scene {
 
     // Multi-select prioritizes toggling objects directly without triggering harvests, pond, or Pipkins
     if (this.store.multiSelectMode || multi) {
-      if (topObj) void this.store.tapObject(topObj.id, { multi: true });
+      if (topObj) this.fireAction(this.store.tapObject(topObj.id, { multi: true }));
       return;
     }
 
@@ -368,7 +368,7 @@ export class WorldScene extends Phaser.Scene {
     for (const pk of this.store.state.pickups) {
       const pc = cellCenter(pk.gx, pk.gy);
       if (Math.hypot(wx - pc.x, wy - (pc.y - 6)) < 16) {
-        void this.store.collectPickup(pk.id);
+        this.fireAction(this.store.collectPickup(pk.id));
         return;
       }
     }
@@ -376,7 +376,7 @@ export class WorldScene extends Phaser.Scene {
     // 2. Prioritize plants so Pipkins never block watering/harvesting
     if (topObj?.plant) {
       this.nudgeActorsNear(cell.gx, cell.gy);
-      void this.store.tapObject(topObj.id);
+      this.fireAction(this.store.tapObject(topObj.id));
       return;
     }
 
@@ -385,7 +385,7 @@ export class WorldScene extends Phaser.Scene {
     if (isWaterTerrain(t) && !topObj) {
       this.nudgeActorsNear(cell.gx, cell.gy);
       this.spawnFloatIcon(wx, wy - 6, 'fx:drop');
-      void this.store.tapPond();
+      this.fireAction(this.store.tapPond());
       return;
     }
 
@@ -393,19 +393,31 @@ export class WorldScene extends Phaser.Scene {
     for (const [id, actor] of this.actors.entries()) {
       const cc = cellCenter(actor.gx, actor.gy);
       if (Math.hypot(wx - cc.x, wy - (cc.y - 8)) < 14) {
-        void this.store.selectAndPetCreature(id);
+        this.fireAction(this.store.selectAndPetCreature(id));
         return;
       }
     }
 
     // 5. Objects or ground tiles (paths, stepping stones, trees, rocks, buildings)
     if (topObj) {
-      void this.store.tapObject(topObj.id);
+      this.fireAction(this.store.tapObject(topObj.id));
       return;
     }
 
     this.store.selectedObjectId = null;
     this.store.selectedCreatureId = null;
+  }
+
+  /**
+   * Fire-and-forget player-initiated store action. Rule/gameplay failures already
+   * surface through store toasts and error sounds; this guard only catches
+   * storage-level rejections (IndexedDB unavailable), which would otherwise be
+   * unhandled. State is unchanged on such failures, so a toast is the right signal.
+   */
+  private fireAction(p: Promise<unknown>) {
+    p.catch(() => {
+      this.store.pushToast("That action couldn't be saved — please try again.", 'warn');
+    });
   }
 
   private nudgeActorsNear(gx: number, gy: number) {
@@ -1092,7 +1104,9 @@ export class WorldScene extends Phaser.Scene {
     this.eventRollTimer += dt;
     if (this.eventRollTimer >= 46) {
       this.eventRollTimer = 0;
-      void this.store.maybeRollWorldEvent();
+      // Background roll: a transient storage failure here is harmless (nothing
+      // changed), so just keep the rejection from becoming unhandled noise.
+      this.store.maybeRollWorldEvent().catch(() => undefined);
     }
 
     this.syncAll(dt);
