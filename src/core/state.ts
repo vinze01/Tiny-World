@@ -1,16 +1,16 @@
 import {
   CREATURE_BY_ID, ITEM_BY_ID, NAME_MAX, PLANT_BY_ID, SCHEMA_VERSION, STARTING_SEEDS, STARTING_TOKENS, STAGES,
 } from './catalog';
-import { footprintCells, objDef, terrainAt } from './grid';
-import type { BiomeId, CreatureState, GameState, PlacedObject, Settings, Stats, Tutorial, WeatherType } from './types';
+import { footprintCells, isWaterTerrain, objDef, terrainAt, terrainKey } from './grid';
+import type { BiomeId, CreatureState, CustomTerrainKind, GameState, PlacedObject, Settings, Stats, Tutorial, WeatherType } from './types';
 
 export const VALID_BIOMES: ReadonlySet<BiomeId> = new Set(STAGES.map((s) => s.biome));
 const VALID_WEATHERS: ReadonlySet<WeatherType> = new Set(['clear', 'cloudy', 'rain', 'snow', 'fog', 'wind', 'sparkles']);
 
 export const defaultSettings = (reducedMotion = false): Settings => ({
-  sound: false,
+  sound: true,
   volume: 0.5,
-  ambient: false,
+  ambient: true,
   reducedMotion,
   cycle: 'real',
   hints: true,
@@ -80,6 +80,7 @@ export const createInitialState = (now: number, seed = Math.floor(Math.random() 
     tokens: STARTING_TOKENS,
     stage: 1,
     inventory: { ...STARTING_SEEDS },
+    customTerrain: {},
     objects,
     pickups: [],
     creatures: [newCreature('mossi', now)],
@@ -207,6 +208,21 @@ export const validateState = (raw: unknown, now = Date.now()): GameState | null 
   if (isObj(m.inventory)) {
     for (const [k, v] of Object.entries(m.inventory)) {
       if (isNum(v) && v > 0 && /^(seed|decor|food):/.test(k)) s.inventory[k] = Math.min(Math.floor(v), 9999);
+    }
+  }
+
+  s.customTerrain = {};
+  if (isObj(m.customTerrain)) {
+    for (const [k, v] of Object.entries(m.customTerrain)) {
+      if (v !== 'snow' && v !== 'sand') continue;
+      const parts = k.split(',');
+      if (parts.length !== 2) continue;
+      const gx = Number(parts[0]);
+      const gy = Number(parts[1]);
+      if (!Number.isInteger(gx) || !Number.isInteger(gy)) continue;
+      const t = terrainAt(s.stage, gx, gy);
+      if (t === 'void' || isWaterTerrain(t)) continue;
+      s.customTerrain[terrainKey(gx, gy)] = v as CustomTerrainKind;
     }
   }
 

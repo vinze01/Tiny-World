@@ -19,7 +19,7 @@ import {
   UI_ICON_BUILDERS,
   seedBag,
 } from '../../src/art/atlas';
-import { buildIsland, buildTerrainTile } from '../../src/art/island';
+import { buildCustomTerrainPatch, buildIsland, buildTerrainTile } from '../../src/art/island';
 import { plantSprite } from '../../src/art/plants';
 import {
   blitSurface,
@@ -500,17 +500,31 @@ export function renderProceduralAssets(
     }
   }
 
-  // 4. Islands: terrain tiles & Stages 1..10 raw islands + animated water
+  // 4. Islands: terrain tiles, custom terrain transition examples & Stages 1..10 raw islands + animated water
   for (const rec of records.filter((r) => r.kind === 'terrain-tile')) {
     try {
-      const [, kind, biome] = rec.id.split(':') as ['terrain', Exclude<Parameters<typeof buildTerrainTile>[0], 'void'>, NonNullable<Parameters<typeof buildTerrainTile>[1]>];
-      const tex = buildTerrainTile(kind, biome, 0);
-      writeStaticVariants(rec, tex.pix, `islands/terrain/tile-${kind}-${biome}`, outDir, cache, force, stats, {
-        preferredScale: 4,
-        includeSvg: true,
-        ax: tex.ox,
-        ay: tex.oy,
-      });
+      if (rec.id.startsWith('terrain-transition:')) {
+        const [, kind, mode] = rec.id.split(':') as ['terrain-transition', 'snow' | 'sand', string];
+        const sameMask = mode === 'connected' ? 15 : 0;
+        const otherMask = mode === 'sand-border' ? 6 : 0;
+        const tex = buildCustomTerrainPatch(kind, sameMask, otherMask);
+        const relNoExt = rec.primaryFile.replace(/\.png$/, '');
+        writeStaticVariants(rec, tex.pix, relNoExt, outDir, cache, force, stats, {
+          preferredScale: 4,
+          includeSvg: true,
+          ax: tex.ox,
+          ay: tex.oy,
+        });
+      } else {
+        const [, kind, biome] = rec.id.split(':') as ['terrain', Exclude<Parameters<typeof buildTerrainTile>[0], 'void'>, NonNullable<Parameters<typeof buildTerrainTile>[1]>];
+        const tex = buildTerrainTile(kind, biome, 0);
+        writeStaticVariants(rec, tex.pix, `islands/terrain/tile-${kind}-${biome}`, outDir, cache, force, stats, {
+          preferredScale: 4,
+          includeSvg: true,
+          ax: tex.ox,
+          ay: tex.oy,
+        });
+      }
     } catch (e) {
       recordErr(rec, e);
     }

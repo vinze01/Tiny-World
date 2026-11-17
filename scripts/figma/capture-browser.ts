@@ -577,8 +577,8 @@ async function renderCatalogBoards(
     );
     await renderBoard(
       'decorations',
-      'Decorations Catalog',
-      'Furniture, Lighting, Paths & Seasonal Items (rot 0°)',
+      'Decorations & Thematic Catalog',
+      'Furniture, Lighting, Paths, Seasonal, Winter, Christmas, Desert & Beach Collections (rot 0°)',
       [
         {
           heading: 'Furniture',
@@ -593,10 +593,22 @@ async function renderCatalogBoards(
           items: records.filter((r) => r.category === 'decorations' && r.subcategory === 'lighting' && r.rotation === 0).map((r) => cardFor(r, 84)!).filter(Boolean),
         },
         {
-          heading: 'Paths & Seasonal',
+          heading: 'Paths & Classic Seasonal',
           cols: 7,
           cardHeight: 146,
           items: records.filter((r) => r.category === 'decorations' && (r.subcategory === 'paths' || r.subcategory === 'seasonal') && r.rotation === 0).map((r) => cardFor(r, 84)!).filter(Boolean),
+        },
+        {
+          heading: 'Winter & Christmas Seasonal Collection',
+          cols: 7,
+          cardHeight: 146,
+          items: records.filter((r) => (r.category === 'decorations' || r.category === 'nature') && (r.subcategory === 'winter' || r.subcategory === 'christmas') && r.rotation === 0).map((r) => cardFor(r, 84)!).filter(Boolean),
+        },
+        {
+          heading: 'Desert, Beach & Summer Collection',
+          cols: 7,
+          cardHeight: 146,
+          items: records.filter((r) => (r.category === 'decorations' || r.category === 'nature') && (r.subcategory === 'desert' || r.subcategory === 'beach') && r.rotation === 0).map((r) => cardFor(r, 84)!).filter(Boolean),
         },
       ],
       'catalogs/decorations.png',
@@ -620,10 +632,11 @@ async function renderCatalogBoards(
     );
     await renderBoard(
       'islands',
-      'World Progression — Stages 1 to 10',
-      'Live WorldScene daytime captures alongside raw procedural island bases',
+      'World Progression & Customizable Terrain',
+      'Live WorldScene daytime captures, customizable terrain patches & raw island geometry',
       [
         { heading: 'Curated Daytime Island Previews (Stages 1–10)', cols: 5, cardHeight: 290, items: islandPreviewCards.filter((c) => existsSync(join(outDir, c.imgRel))) },
+        { heading: 'Terrain & Landscaping Patches & Transitions', cols: 5, cardHeight: 160, items: records.filter((r) => r.category === 'islands' && (r.subcategory === 'terrain' || r.subcategory === 'transitions')).map((r) => cardFor(r, 84)!).filter(Boolean) },
         { heading: 'Raw Procedural Island Geometry', cols: 5, cardHeight: 240, items: islandStageCards },
       ],
       'catalogs/islands.png',
@@ -631,12 +644,13 @@ async function renderCatalogBoards(
     await renderBoard(
       'all-assets',
       'Complete Game Visual Asset Master Index',
-      'Unified Figma Overview Board (<4096px) across Creatures, Buildings, Decor, Nature, Plants, Stages & FX',
+      'Unified Figma Overview Board (<4096px) across Creatures, Buildings, Decor, Nature, Terrain, Plants, Stages & FX',
       [
         { heading: 'Pipkins', cols: 15, cardHeight: 112, items: creaturesCards.map((c) => ({ ...c, maxPreviewPx: 56 })) },
         { heading: 'Buildings', cols: 7, cardHeight: 144, items: buildingCards.map((c) => ({ ...c, maxPreviewPx: 82 })) },
-        { heading: 'Decorations', cols: 10, cardHeight: 118, items: decorCards.map((c) => ({ ...c, maxPreviewPx: 56 })) },
+        { heading: 'Decorations & Thematic Sets', cols: 10, cardHeight: 118, items: decorCards.map((c) => ({ ...c, maxPreviewPx: 56 })) },
         { heading: 'Nature', cols: 9, cardHeight: 128, items: natureCards.map((c) => ({ ...c, maxPreviewPx: 66 })) },
+        { heading: 'Terrain Patches & Transitions', cols: 8, cardHeight: 112, items: records.filter((r) => r.category === 'islands' && (r.subcategory === 'terrain' || r.subcategory === 'transitions')).map((r) => cardFor(r, 56)!).filter(Boolean) },
         { heading: 'Plants (Growth Strips)', cols: 7, cardHeight: 124, items: plantCards.map((c) => ({ ...c, maxPreviewPx: 140 })) },
         { heading: 'Effects & Pickups', cols: 12, cardHeight: 104, items: fxCards.map((c) => ({ ...c, maxPreviewPx: 46 })) },
       ],
@@ -854,6 +868,18 @@ export async function runBrowserCaptures(
       await furnBtn.click();
       await page.waitForTimeout(200);
       await captureUiScreen('shop-furniture', 'Shop Drawer — Furniture', 'ui/screenshots/shop-furniture.png', 1280, 800);
+    }
+    const terrainBtn = page.locator('.panel-overlay button:has-text("Terrain & Landscaping")').first();
+    if (await terrainBtn.count()) {
+      await terrainBtn.click();
+      await page.waitForTimeout(200);
+      await captureUiScreen('shop-terrain', 'Shop Drawer — Terrain & Landscaping', 'ui/screenshots/shop-terrain.png', 1280, 800);
+    }
+    const seasonalBtn = page.locator('.panel-overlay button:has-text("Seasonal")').first();
+    if (await seasonalBtn.count()) {
+      await seasonalBtn.click();
+      await page.waitForTimeout(200);
+      await captureUiScreen('shop-seasonal', 'Shop Drawer — Seasonal Collections', 'ui/screenshots/shop-seasonal.png', 1280, 800);
     }
 
     // 8. Inventory / Bag + Sell ledger

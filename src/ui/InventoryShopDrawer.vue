@@ -12,7 +12,7 @@ import {
   resaleValue,
   seedKey,
 } from '../core/catalog';
-import type { BiomeId, Category, PlantId } from '../core/types';
+import type { BiomeId, Category, PlantId, SeasonalTheme } from '../core/types';
 import { iconUrl } from '../art/atlas';
 import { useGameStore } from '../stores/gameStore';
 
@@ -21,12 +21,31 @@ const store = useGameStore();
 
 type ShopCat = 'all' | 'seeds' | Category | 'treats';
 type SortMode = 'default' | 'price-asc' | 'price-desc' | 'stage' | 'unlocked';
+type SeasonalFilter = 'all' | SeasonalTheme;
 
 const shopCat = ref<ShopCat>('seeds');
+const seasonalFilter = ref<SeasonalFilter>('all');
 const searchQuery = ref('');
 const sortBy = ref<SortMode>('default');
 const qty = ref(1);
 const selectedShopKey = ref<string>(seedKey('daisy'));
+
+const SEASONAL_FILTERS: { id: SeasonalFilter; label: string }[] = [
+  { id: 'all', label: 'All Themes' },
+  { id: 'winter', label: '❄️ Winter' },
+  { id: 'christmas', label: '🎄 Christmas' },
+  { id: 'desert', label: '🌵 Desert' },
+  { id: 'summer', label: '🏖️ Beach & Summer' },
+  { id: 'other', label: '🍂 Classic' },
+];
+
+const SEASON_TAG: Record<SeasonalTheme, string> = {
+  winter: 'Winter',
+  christmas: 'Christmas',
+  desert: 'Desert',
+  summer: 'Summer',
+  other: 'Seasonal',
+};
 
 // Bag sell state
 interface BagEntry {
@@ -66,6 +85,7 @@ interface ShopEntry {
   resale: number;
   stage: number;
   biome?: BiomeId;
+  seasonGroup?: SeasonalTheme;
   icon: string;
   owned: number;
 }
@@ -100,6 +120,7 @@ const allShopEntries = computed<ShopEntry[]>(() => {
     resale: resaleValue(i.price),
     stage: i.stage,
     biome: i.biome,
+    seasonGroup: i.seasonGroup,
     icon: iconUrl(decorKey(i.id)),
     owned: inv[decorKey(i.id)] ?? 0,
   }));
@@ -113,9 +134,6 @@ const shopEntries = computed<ShopEntry[]>(() => {
 
   if (q || shopCat.value === 'all') {
     list = allShopEntries.value;
-    if (shopCat.value !== 'all' && !q) {
-      // handled below, when searching we search everything
-    }
   } else if (shopCat.value === 'seeds') {
     list = PLANTS.map((p) => ({
       key: seedKey(p.id),
@@ -140,6 +158,24 @@ const shopEntries = computed<ShopEntry[]>(() => {
         owned: inv[TREAT_ID] ?? 0,
       },
     ];
+  } else if (shopCat.value === 'seasonal') {
+    list = SHOP_ITEMS.filter((i) => {
+      if (seasonalFilter.value === 'all') {
+        return i.category === 'seasonal' || Boolean(i.seasonGroup);
+      }
+      return i.seasonGroup === seasonalFilter.value;
+    }).map((i) => ({
+      key: decorKey(i.id),
+      name: i.name,
+      desc: i.desc,
+      price: i.price,
+      resale: resaleValue(i.price),
+      stage: i.stage,
+      biome: i.biome,
+      seasonGroup: i.seasonGroup,
+      icon: iconUrl(decorKey(i.id)),
+      owned: inv[decorKey(i.id)] ?? 0,
+    }));
   } else {
     list = SHOP_ITEMS.filter((i) => i.category === shopCat.value).map((i) => ({
       key: decorKey(i.id),
@@ -149,6 +185,7 @@ const shopEntries = computed<ShopEntry[]>(() => {
       resale: resaleValue(i.price),
       stage: i.stage,
       biome: i.biome,
+      seasonGroup: i.seasonGroup,
       icon: iconUrl(decorKey(i.id)),
       owned: inv[decorKey(i.id)] ?? 0,
     }));
@@ -159,7 +196,8 @@ const shopEntries = computed<ShopEntry[]>(() => {
       (e) =>
         e.name.toLowerCase().includes(q) ||
         e.desc.toLowerCase().includes(q) ||
-        (e.biome && BIOME_TAG[e.biome].toLowerCase().includes(q)),
+        (e.biome && BIOME_TAG[e.biome].toLowerCase().includes(q)) ||
+        (e.seasonGroup && SEASON_TAG[e.seasonGroup].toLowerCase().includes(q)),
     );
   }
 
@@ -200,7 +238,15 @@ const lockedReason = computed(() => {
 
 const selectCategory = (c: ShopCat) => {
   shopCat.value = c;
+  if (c !== 'seasonal') seasonalFilter.value = 'all';
   searchQuery.value = '';
+  qty.value = 1;
+  const first = shopEntries.value[0];
+  if (first) selectedShopKey.value = first.key;
+};
+
+const selectSeasonalFilter = (sf: SeasonalFilter) => {
+  seasonalFilter.value = sf;
   qty.value = 1;
   const first = shopEntries.value[0];
   if (first) selectedShopKey.value = first.key;
@@ -362,7 +408,7 @@ const executeSell = async () => {
         No seeds in your bag. Visit the Shop to pick up Daisy or Sunflower seeds!
       </p>
 
-      <h3 class="sec-title">Decorations &amp; Buildings</h3>
+      <h3 class="sec-title">Terrain, Decorations &amp; Buildings</h3>
       <div v-if="bagDecor.length" class="medallion-grid">
         <div v-for="d in bagDecor" :key="d.key" class="bag-card">
           <button
@@ -553,6 +599,24 @@ const executeSell = async () => {
         </button>
       </div>
 
+      <div
+        v-if="shopCat === 'seasonal' && !searchQuery.trim()"
+        class="cat-bar sub-cat-bar"
+        role="tablist"
+        aria-label="Seasonal themes"
+      >
+        <button
+          v-for="sf in SEASONAL_FILTERS"
+          :key="sf.id"
+          type="button"
+          class="tw-btn cat-pill"
+          :class="{ 'tw-btn-gold': seasonalFilter === sf.id }"
+          @click="selectSeasonalFilter(sf.id)"
+        >
+          {{ sf.label }}
+        </button>
+      </div>
+
       <div v-if="shopEntries.length" class="medallion-grid">
         <button
           v-for="entry in shopEntries"
@@ -572,6 +636,7 @@ const executeSell = async () => {
           <span class="med-label">
             {{ entry.name }}
             <small v-if="entry.stage > store.state.stage" class="lock-tag">Stage {{ entry.stage }}</small>
+            <small v-else-if="entry.seasonGroup" class="biome-tag">{{ SEASON_TAG[entry.seasonGroup] }}</small>
             <small v-else-if="entry.biome" class="biome-tag">{{ BIOME_TAG[entry.biome] }}</small>
           </span>
         </button>
@@ -589,7 +654,8 @@ const executeSell = async () => {
             <strong>{{ activeShopItem.name }}</strong>
             <span class="owned-pill">Owned: {{ activeShopItem.owned }}</span>
             <span class="owned-pill">Stage {{ activeShopItem.stage }}</span>
-            <span v-if="activeShopItem.biome" class="owned-pill">{{ BIOME_TAG[activeShopItem.biome] }}</span>
+            <span v-if="activeShopItem.seasonGroup" class="owned-pill">{{ SEASON_TAG[activeShopItem.seasonGroup] }}</span>
+            <span v-else-if="activeShopItem.biome" class="owned-pill">{{ BIOME_TAG[activeShopItem.biome] }}</span>
           </div>
           <p class="ledger-desc">{{ activeShopItem.desc }}</p>
           <div class="ledger-math">
@@ -750,6 +816,12 @@ const executeSell = async () => {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
+}
+.sub-cat-bar {
+  padding: 5px 7px;
+  background: var(--cream-lo);
+  border-radius: 10px;
+  border: 1.5px solid var(--wood);
 }
 .cat-pill {
   padding: 4px 9px;

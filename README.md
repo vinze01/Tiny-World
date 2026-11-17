@@ -6,11 +6,12 @@
 
 ## ✨ Key Features
 
-- **Handcrafted Isometric Diorama**: A `32×16` isometric floating island with animated water ripples, cobblestone paths, hot springs, ice/snow/starstone terrain, overhanging foliage, and a tapered underside of hexagonal basalt columns.
+- **Handcrafted Isometric Diorama & Unified Meadow Base**: A `32×16` isometric floating island with a consistent, soothing green meadow base across all 10 progression stages, animated water ripples, cobblestone paths, hot springs, overhanging foliage, and a tapered underside of hexagonal basalt columns.
+- **Player-Controlled Terrain & Landscaping**: Customize ground tiles on your own terms using the **Terrain & Landscaping** shop category. Paint **Green Grass**, **Snow Patch**, or **Sand Patch** tiles non-destructively underneath existing buildings, plants, paths, decorations, and Pipkins with procedural neighbor-aware edge blending (continuous snowfields, sandy oases, soft scalloped grass borders, and seamless snow/sand transitions).
 - **15 Original Pipkin Creatures**: Befriend **Mossi**, **Bloop**, **Ember**, **Puffin**, **Sprig**, **Frosty**, **Nimbus**, **Glimmer**, **Cinder**, **Luna**, **Pebble**, **Wisp**, **Astra**, **Flurry**, and **Bloom**—each with 7 sprite-sheet animations (`idle`, `walk`, `sleep`, `happy`, `curious`, `interact`, `eat`), personality-weighted finite-state-machine AI with annoyance/soothing moods, 10 contextual interactions, petting, Berry Treat feeding, affection levels, and custom naming.
-- **Offline Timestamp Gardening**: Plant and grow **14 plant species** (from **Daisy**, **Bluebell**, and **Sunflower** up to **Moonflower**, **Starbloom**, and **Everdream Lotus**) across 5 visual stages (`Seed` → `Sprout` → `Growing` → `Mature` → `Blooming`), with batch **`Water All`** / **`Harvest All`** controls. Plants never wither or die when you are away, and Daisies regrow from sprouts.
-- **84 Shop Items & Island Customization**: Place Nature, Furniture, Lighting, Paths, Buildings, and Seasonal decor (including **Tiny Cottage**, **Greenhouse**, **Mini Windmill**, **Starlight Observatory**, and **Dreamlight Lantern**), with live valid/invalid tile previews, rotation (`R`), obstacle clearing, and 50% bag/placed-item resale.
-- **10 Playable Island Stages & Biomes**: Expand strictly outward from `(0, 0)` from **Stage 1 — Little Meadow (`8×8`)** through **Stage 10 — Everdream Paradise (`36×36`)**, keeping all existing placements in place.
+- **Offline Timestamp Gardening**: Plant and grow **14 plant species** (from **Daisy**, **Bluebell**, and **Sunflower** up to **Moonflower**, **Starbloom**, and **Everdream Lotus**) across 5 visual stages (`Seed` → `Sprout` → `Growing` → `Mature` → `Blooming`), relocate growing plants without uprooting (`Move`), and use batch **`Water All`** / **`Harvest All`** controls. Plants never wither or die when you are away, and Daisies regrow from sprouts.
+- **116 Shop Items & Seasonal Collections**: Browse Nature, Furniture, Lighting, Paths, Buildings, Terrain & Landscaping, and Seasonal decor with thematic filter pills (**Winter**, **Christmas**, **Desert**, **Beach & Summer**, **Classic**). Place **Christmas Trees**, **Reindeer**, **Santa's Sleigh**, **Snowmen**, **Cacti**, **Desert Tents**, **Oasis Fountains**, **Beach Umbrellas**, **Sandcastles**, **Starlight Observatories**, and more with live tile previews, in-place rotation (`R`), **`Multi-Select`** (`+ All [Type]`, Shift/Ctrl+Click) to move entire layouts together atomically, obstacle clearing with Bag rewards, and 50% resale.
+- **10 Playable Island Stages & Progression**: Expand strictly outward from `(0, 0)` from **Stage 1 — Little Meadow (`8×8`)** through **Stage 10 — Everdream Paradise (`36×36`)**, keeping all existing placements in place while maintaining a unified green grass field.
 - **Day/Night Cycle, Sky Slider & Weather FX**: Auto or manual sky time preview (`Morning`, `Daytime`, `Sunset`, `Night`, plus 24h slider), biome weather previews (`clear`, `cloudy`, `rain`, `snow`, `fog`, `wind`, `sparkles`) with configurable particle density, **25 Achievements**, and a **Discovery Journal**.
 - **Three Chrome Extension Surfaces**:
   - **Popup (`popup.html`)**: Compact view for quick check-ins, harvesting, and petting Pipkins.
@@ -43,7 +44,7 @@ This compiles TypeScript, verifies Vue templates via `vue-tsc`, and outputs the 
 
 ### 3. Run Automated Tests & Dev Asset Tools
 ```bash
-# Run all 62 Vitest unit & integration tests across 6 suites
+# Run all 68 Vitest unit & integration tests across 6 suites
 npm test
 
 # Run the Playwright real-browser E2E suite across Full-Page, Popup, and Side Panel surfaces
@@ -72,6 +73,14 @@ npm run gallery
 
 ---
 
+## ☕ Support
+
+If TinyWorld brings you a little peace during a busy day, consider supporting development:
+
+- **[Buy Me a Coffee](https://buymeacoffee.com/vinze)** ☕ — every cup helps keep the Pipkins happy!
+
+---
+
 ## ⚠️ Notes
 
-- **Audio Autoplay**: Per browser policies and cozy design rules, sound effects are disabled by default and can be toggled on at any time in **Settings (⚙️)**.
+- **Audio Autoplay**: Per browser policies, the synthesizer becomes active after your first click or key press in the game. Sound effects and ambient notes are on by default and can be toggled off at any time in **Settings (⚙️) → Audio**.

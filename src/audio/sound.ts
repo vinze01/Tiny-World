@@ -1,6 +1,6 @@
 /**
  * Lightweight procedural Web Audio synthesizer for TinyWorld.
- * Disabled by default; never autoplays without user opt-in and gesture.
+ * Enabled by default (new saves); audio starts after the first user gesture per autoplay policy.
  */
 
 export type SfxKind =

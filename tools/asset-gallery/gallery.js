@@ -65,7 +65,15 @@ function applyFilters() {
   const q = state.search.trim().toLowerCase();
   state.filtered = state.manifest.assets.filter((r) => {
     if (r.status === 'skipped' || r.status === 'pending') return false;
-    if (state.category !== 'all' && r.category !== state.category) return false;
+    if (state.category !== 'all') {
+      if (state.category.startsWith('theme:')) {
+        const theme = state.category.slice(6);
+        const tags = r.tags || [];
+        if (r.subcategory !== theme && !tags.includes(theme)) return false;
+      } else if (r.category !== state.category) {
+        return false;
+      }
+    }
     if (state.module !== 'all' && r.sourceModule !== state.module) return false;
     if (state.stage !== 'all' && String(r.stageMin || '') !== state.stage) return false;
     if (state.animatedOnly && !r.animation) return false;
@@ -86,15 +94,37 @@ function renderCategories() {
     if (r.status === 'skipped') continue;
     counts.all++;
     counts[r.category] = (counts[r.category] || 0) + 1;
+    const tags = r.tags || [];
+    for (const theme of ['terrain', 'winter', 'christmas', 'desert', 'summer']) {
+      if (r.subcategory === theme || tags.includes(theme)) {
+        counts[`theme:${theme}`] = (counts[`theme:${theme}`] || 0) + 1;
+      }
+    }
   }
-  const order = ['all', 'creatures', 'buildings', 'decorations', 'nature', 'plants', 'islands', 'effects', 'ui', 'catalogs'];
+  const order = [
+    ['all', 'All Assets'],
+    ['creatures', 'creatures'],
+    ['buildings', 'buildings'],
+    ['decorations', 'decorations'],
+    ['nature', 'nature'],
+    ['plants', 'plants'],
+    ['islands', 'islands'],
+    ['theme:terrain', 'Terrain'],
+    ['theme:winter', 'Winter'],
+    ['theme:christmas', 'Christmas'],
+    ['theme:desert', 'Desert'],
+    ['theme:summer', 'Summer'],
+    ['effects', 'effects'],
+    ['ui', 'ui'],
+    ['catalogs', 'catalogs'],
+  ];
   els.categoryPills.innerHTML = '';
-  for (const cat of order) {
+  for (const [cat, label] of order) {
     if (!counts[cat]) continue;
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = `pill-btn${state.category === cat ? ' active' : ''}`;
-    btn.textContent = `${cat === 'all' ? 'All Assets' : cat} (${counts[cat]})`;
+    btn.textContent = `${label} (${counts[cat]})`;
     btn.addEventListener('click', () => {
       state.category = cat;
       renderCategories();

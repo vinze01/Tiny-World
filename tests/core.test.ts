@@ -10,13 +10,28 @@ import {
   TREAT_ID,
   decorKey,
   obstacleClearCost,
+  obstacleClearReward,
   resaleValue,
   seedKey,
 } from '../src/core/catalog';
 import { createInitialState } from '../src/core/state';
 import { mulberry32 } from '../src/core/rng';
-import { canPlace, findPath, footprintCells, objectAt, terrainAt, walkGrid } from '../src/core/grid';
+import {
+  canMoveObjects,
+  canPlace,
+  customTerrainAt,
+  effectiveTerrainAt,
+  findPath,
+  footprintCells,
+  objectAt,
+  terrainAt,
+  terrainMap,
+  terrainNeighborMask,
+  terrainOppositeNeighborMask,
+  walkGrid,
+} from '../src/core/grid';
 import { ITEM_BY_ID } from '../src/core/catalog';
+import { validateState } from '../src/core/state';
 import { isBlooming, plantProgress, plantStage } from '../src/core/plants';
 import type { Ctx, GameState } from '../src/core/types';
 
@@ -134,7 +149,20 @@ describe('inventory & placement', () => {
     expect(run(s, 'moveObject', { id: bench.id, gx: 2, gy: 3, rot: 1 }).ok).toBe(true);
     expect(bench.gx).toBe(2);
     expect(run(s, 'moveObject', { id: bench.id, gx: 4, gy: 3, rot: 0 }).ok).toBe(false);
-    expect(run(s, 'moveObject', { id: tree.id, gx: 2, gy: 3, rot: 0 }).ok).toBe(false);
+    // Generated landmarks keep locked=true (cannot be stored/sold) while still being movable
+    let dest: { gx: number; gy: number } | null = null;
+    for (let gy = 0; gy < 16 && !dest; gy++) {
+      for (let gx = 0; gx < 32 && !dest; gx++) {
+        if ((gx !== tree.gx || gy !== tree.gy) && canPlace(s, ITEM_BY_ID.tree_big, gx, gy, 0, tree.id).ok) {
+          dest = { gx, gy };
+        }
+      }
+    }
+    expect(dest).not.toBeNull();
+    expect(run(s, 'moveObject', { id: tree.id, gx: dest!.gx, gy: dest!.gy, rot: 0 }).ok).toBe(true);
+    expect([tree.gx, tree.gy]).toEqual([dest!.gx, dest!.gy]);
+    expect(tree.locked).toBe(true);
+    expect(run(s, 'removeObject', { id: tree.id }).ok).toBe(false);
     expect(run(s, 'removeObject', { id: tree.id }).ok).toBe(false);
     expect(run(s, 'removeObject', { id: bench.id }).ok).toBe(true);
     expect(s.inventory[decorKey('bench')]).toBe(1);
@@ -393,12 +421,47 @@ describe('obstacle clearing, selling, batch gardening & annoyance systems', () =
     expect(s.objects.some((o) => o.id === rock.id)).toBe(true);
     expect(s.tokens).toBe(cost - 1);
 
-    // Sufficient tokens removes rock and frees tile for placement
-    s.tokens = cost + 10;
-    expect(run(s, 'clearObstacle', { id: rock.id }).ok).toBe(true);
-    expect(s.tokens).toBe(10);
+    // Sufficient tokens removes rock, frees tile for placement, and grants Small Rock into Bag
+    s.tokens = cost + 100;
+    expect(obstacleClearReward('rock')?.key).toBe('decor:stones');
+    expect(obstacleClearReward('wildflowers')?.key).toBe('seed:daisy');
+    expect(obstacleClearReward('cherry')?.key).toBe('decor:cherry');
+    expect(obstacleClearReward('cloud_tree')?.key).toBe('decor:cloud_tree');
+    expect(obstacleClearReward('tree_big')).toBeNull();
+
+    const clearRock = run(s, 'clearObstacle', { id: rock.id });
+    expect(clearRock.ok).toBe(true);
+    expect(clearRock.data?.reward).toBe('decor:stones');
+    expect(s.tokens).toBe(100);
     expect(s.objects.some((o) => o.id === rock.id)).toBe(false);
+    expect(s.inventory['decor:stones']).toBe(1);
+    expect(s.discovered['item:stones']).toBe(T0);
     expect(canPlace(s, ITEM_BY_ID.bench, rock.gx, rock.gy, 0).ok).toBe(true);
+
+    // Clearing wildflowers grants +1 Daisy Seed; clearing shop-available generated obstacles returns them to Bag
+    const wildflowers = s.objects.find((o) => o.locked && o.type === 'wildflowers');
+    if (wildflowers) {
+      const daisyBefore = s.inventory['seed:daisy'] ?? 0;
+      expect(run(s, 'clearObstacle', { id: wildflowers.id }).ok).toBe(true);
+      expect(s.inventory['seed:daisy']).toBe(daisyBefore + 1);
+    }
+
+    // Relocating a generated shop tree keeps locked=true and grants it to Bag when later cleared
+    s.objects.push({ id: 'gen_cherry', type: 'cherry', gx: rock.gx, gy: rock.gy, rot: 0, placedAt: T0, locked: true });
+    let cherryDest: { gx: number; gy: number } | null = null;
+    for (let gy = 0; gy < 16 && !cherryDest; gy++) {
+      for (let gx = 0; gx < 32 && !cherryDest; gx++) {
+        if ((gx !== rock.gx || gy !== rock.gy) && canPlace(s, ITEM_BY_ID.cherry, gx, gy, 0, 'gen_cherry').ok) {
+          cherryDest = { gx, gy };
+        }
+      }
+    }
+    expect(cherryDest).not.toBeNull();
+    expect(run(s, 'moveObject', { id: 'gen_cherry', gx: cherryDest!.gx, gy: cherryDest!.gy, rot: 0 }).ok).toBe(true);
+    const movedCherry = s.objects.find((o) => o.id === 'gen_cherry')!;
+    expect(movedCherry.locked).toBe(true);
+    expect(run(s, 'clearObstacle', { id: 'gen_cherry' }).ok).toBe(true);
+    expect(s.inventory['decor:cherry']).toBe(1);
 
     // Protected landmark cannot be cleared
     expect(run(s, 'clearObstacle', { id: tree.id }).ok).toBe(false);
@@ -524,4 +587,240 @@ describe('obstacle clearing, selling, batch gardening & annoyance systems', () =
     }
   });
 });
+
+describe('plant relocation & multi-select group move', () => {
+  it('moves a growing plant without uprooting it and preserves watering and bloom progress', () => {
+    const s = mk();
+    expect(run(s, 'plantSeed', { plantId: 'daisy', gx: 2, gy: 3 }).ok).toBe(true);
+    const p = s.objects.find((o) => o.plant)!;
+    const total = PLANT_BY_ID.daisy.growMinutes * MS_MIN;
+
+    // Water twice and let it mature partway
+    expect(run(s, 'waterPlant', { id: p.id }, T0 + 1000).ok).toBe(true);
+    expect(run(s, 'waterPlant', { id: p.id }, T0 + 2000).ok).toBe(true);
+    const beforeSeeds = s.inventory[seedKey('daisy')] ?? 0;
+    const progressBefore = plantProgress(p, T0 + total * 0.45);
+    const stageBefore = plantStage(p, T0 + total * 0.45);
+
+    // Move to another soft grass cell
+    const rMove = run(s, 'moveObject', { id: p.id, gx: 1, gy: 5, rot: 0 }, T0 + total * 0.45);
+    expect(rMove.ok).toBe(true);
+    expect(p.gx).toBe(1);
+    expect(p.gy).toBe(5);
+    expect(p.plant?.waterCount).toBe(2);
+    expect(p.plant?.plantedAt).toBe(T0);
+    expect(plantProgress(p, T0 + total * 0.45)).toBeCloseTo(progressBefore, 6);
+    expect(plantStage(p, T0 + total * 0.45)).toBe(stageBefore);
+    expect(s.inventory[seedKey('daisy')] ?? 0).toBe(beforeSeeds);
+
+    // Invalid targets (water, stone plot, occupied cell) reject without changing coordinates
+    expect(run(s, 'moveObject', { id: p.id, gx: 4, gy: 3, rot: 0 }).ok).toBe(false); // water
+    expect(run(s, 'moveObject', { id: p.id, gx: 5, gy: 1, rot: 0 }).ok).toBe(false); // stone plot
+    expect(run(s, 'moveObject', { id: p.id, gx: 6, gy: 3, rot: 0 }).ok).toBe(false); // bench occupies (6,3)
+    expect(p.gx).toBe(1);
+    expect(p.gy).toBe(5);
+  });
+
+  it('moves multiple fences across overlapping coordinates atomically via moveObjects', () => {
+    const s = mk();
+    give(s, decorKey('fence'), 3);
+    expect(run(s, 'placeItem', { itemId: 'fence', gx: 1, gy: 5, rot: 0 }).ok).toBe(true);
+    expect(run(s, 'placeItem', { itemId: 'fence', gx: 2, gy: 5, rot: 0 }).ok).toBe(true);
+    expect(run(s, 'placeItem', { itemId: 'fence', gx: 3, gy: 5, rot: 0 }).ok).toBe(true);
+
+    const fences = s.objects.filter((o) => o.type === 'fence');
+    expect(fences).toHaveLength(3);
+
+    // Shift right by dx=1 so fences step into slots just vacated by neighbors
+    const r = run(s, 'moveObjects', { ids: fences.map((f) => f.id), dx: 1, dy: 0 });
+    expect(r.ok).toBe(true);
+    expect(fences.map((f) => [f.gx, f.gy])).toEqual([
+      [2, 5],
+      [3, 5],
+      [4, 5],
+    ]);
+  });
+
+  it('moves mixed plants, paths, furniture, and buildings together and rejects atomically on any collision', () => {
+    const s = mk();
+    s.stage = 3; // 16x16 open meadow grass around (10..13, 7..10)
+    give(s, decorKey('path'), 1);
+    give(s, decorKey('fence'), 1);
+    give(s, decorKey('cottage'), 1);
+
+    expect(run(s, 'plantSeed', { plantId: 'daisy', gx: 10, gy: 7 }).ok).toBe(true);
+    expect(run(s, 'placeItem', { itemId: 'path', gx: 11, gy: 7, rot: 0 }).ok).toBe(true);
+    expect(run(s, 'placeItem', { itemId: 'fence', gx: 11, gy: 7, rot: 0 }).ok).toBe(true);
+    expect(run(s, 'placeItem', { itemId: 'cottage', gx: 12, gy: 7, rot: 0 }).ok).toBe(true);
+
+    const plant = s.objects.find((o) => o.plant)!;
+    const path = s.objects.find((o) => o.type === 'path')!;
+    const fence = s.objects.find((o) => o.type === 'fence')!;
+    const cottage = s.objects.find((o) => o.type === 'cottage')!;
+    const groupIds = [plant.id, path.id, fence.id, cottage.id];
+
+    // Valid group shift by (0, +2)
+    expect(run(s, 'moveObjects', { ids: groupIds, dx: 0, dy: 2 }).ok).toBe(true);
+    expect([plant.gx, plant.gy]).toEqual([10, 9]);
+    expect([path.gx, path.gy]).toEqual([11, 9]);
+    expect([fence.gx, fence.gy]).toEqual([11, 9]);
+    expect([cottage.gx, cottage.gy]).toEqual([12, 9]);
+    expect(plant.plant?.plantedAt).toBe(T0);
+
+    // Invalid group shift putting objects into pond water (Stage 3 pond sits at 10..12, 3..4)
+    const preCheck = canMoveObjects(s, [plant, path, fence, cottage], 0, -5);
+    expect(preCheck.ok).toBe(false);
+    expect(preCheck.blockedIds.length).toBeGreaterThan(0);
+
+    const failMove = run(s, 'moveObjects', { ids: groupIds, dx: 0, dy: -5 });
+    expect(failMove.ok).toBe(false);
+    // Atomic rollback: zero items moved
+    expect([plant.gx, plant.gy]).toEqual([10, 9]);
+    expect([path.gx, path.gy]).toEqual([11, 9]);
+    expect([fence.gx, fence.gy]).toEqual([11, 9]);
+    expect([cottage.gx, cottage.gy]).toEqual([12, 9]);
+
+    // Generated landmarks & natural scenery (Great Old Tree, bushes, cherry blossoms, etc.) can also be batch-moved
+    const tree = s.objects.find((o) => o.type === 'tree_big')!;
+    const rock = s.objects.find((o) => o.type === 'rock')!;
+    const bush = s.objects.find((o) => o.type === 'bush')!;
+    expect(tree.locked).toBe(true);
+    expect(bush.locked).toBe(true);
+    const oldTreePos = { gx: tree.gx, gy: tree.gy };
+    const oldRockPos = { gx: rock.gx, gy: rock.gy };
+    const oldBushPos = { gx: bush.gx, gy: bush.gy };
+    const checkTreeGroup = canMoveObjects(s, [fence, tree], -1, 0);
+    const dx = checkTreeGroup.ok ? -1 : 0;
+    const dy = checkTreeGroup.ok ? 0 : canMoveObjects(s, [fence, tree, rock, bush], 0, 1).ok ? 1 : 0;
+    if (dx !== 0 || dy !== 0) {
+      expect(run(s, 'moveObjects', { ids: [fence.id, tree.id, rock.id, bush.id], dx, dy }).ok).toBe(true);
+      expect([tree.gx, tree.gy]).toEqual([oldTreePos.gx + dx, oldTreePos.gy + dy]);
+      expect([rock.gx, rock.gy]).toEqual([oldRockPos.gx + dx, oldRockPos.gy + dy]);
+      expect([bush.gx, bush.gy]).toEqual([oldBushPos.gx + dx, oldBushPos.gy + dy]);
+      expect(tree.locked).toBe(true);
+    } else {
+      // Find any valid shift for [tree, rock, bush] alone
+      let shift: { dx: number; dy: number } | null = null;
+      for (let ddy = -3; ddy <= 3 && !shift; ddy++) {
+        for (let ddx = -3; ddx <= 3 && !shift; ddx++) {
+          if ((ddx !== 0 || ddy !== 0) && canMoveObjects(s, [tree, rock, bush], ddx, ddy).ok) {
+            shift = { dx: ddx, dy: ddy };
+          }
+        }
+      }
+      expect(shift).not.toBeNull();
+      expect(run(s, 'moveObjects', { ids: [tree.id, rock.id, bush.id], dx: shift!.dx, dy: shift!.dy }).ok).toBe(true);
+      expect([tree.gx, tree.gy]).toEqual([oldTreePos.gx + shift!.dx, oldTreePos.gy + shift!.dy]);
+      expect([rock.gx, rock.gy]).toEqual([oldRockPos.gx + shift!.dx, oldRockPos.gy + shift!.dy]);
+      expect([bush.gx, bush.gy]).toEqual([oldBushPos.gx + shift!.dx, oldBushPos.gy + shift!.dy]);
+      expect(tree.locked).toBe(true);
+    }
+  });
+});
+
+describe('unified green island terrain, customizable terrain patches & seasonal/desert decor', () => {
+  it('keeps base island terrain across all stages 1 through 10 as unified green meadow grass (plus water ponds and stone plots)', () => {
+    const allowedBase = new Set(['void', 'grass', 'plot', 'water']);
+    for (let stage = 1; stage <= 10; stage++) {
+      const m = terrainMap(stage);
+      let grassCount = 0;
+      for (let gy = 0; gy < m.h; gy++) {
+        for (let gx = 0; gx < m.w; gx++) {
+          const t = m.cells[gy][gx];
+          expect(allowedBase.has(t)).toBe(true);
+          if (t === 'grass') grassCount++;
+        }
+      }
+      expect(grassCount).toBeGreaterThan(20);
+    }
+  });
+
+  it('allows purchasing and placing Snow Patch, Sand Patch, and Green Grass without removing existing buildings, plants, or paths', () => {
+    const s = mk();
+    s.tokens = 500;
+    expect(run(s, 'buy', { key: decorKey('snow_patch'), qty: 3 }).ok).toBe(true);
+    expect(run(s, 'buy', { key: decorKey('sand_patch'), qty: 2 }).ok).toBe(true);
+    expect(run(s, 'buy', { key: decorKey('grass_patch'), qty: 2 }).ok).toBe(true);
+
+    // Place a path and a daisy plant on (2, 3), and a cottage on (5, 1)
+    give(s, decorKey('path'), 1);
+    give(s, decorKey('cottage'), 1);
+    expect(run(s, 'placeItem', { itemId: 'path', gx: 2, gy: 3, rot: 0 }).ok).toBe(true);
+    expect(run(s, 'plantSeed', { plantId: 'daisy', gx: 2, gy: 3 }).ok).toBe(true);
+    expect(run(s, 'placeItem', { itemId: 'cottage', gx: 5, gy: 1, rot: 0 }).ok).toBe(true);
+    const objCountBefore = s.objects.length;
+
+    // Cannot place terrain on void or water, or grass_patch on default grass
+    expect(canPlace(s, ITEM_BY_ID.snow_patch, 0, 0, 0).ok).toBe(false); // void
+    expect(canPlace(s, ITEM_BY_ID.snow_patch, 4, 3, 0).ok).toBe(false); // water
+    expect(canPlace(s, ITEM_BY_ID.grass_patch, 2, 3, 0).ok).toBe(false); // already default grass
+
+    // Place Snow Patch directly underneath the path + growing daisy at (2, 3) and under the cottage at (5, 1)
+    expect(run(s, 'placeItem', { itemId: 'snow_patch', gx: 2, gy: 3, rot: 0 }).ok).toBe(true);
+    expect(run(s, 'placeItem', { itemId: 'snow_patch', gx: 5, gy: 1, rot: 0 }).ok).toBe(true);
+    expect(customTerrainAt(s, 2, 3)).toBe('snow');
+    expect(customTerrainAt(s, 5, 1)).toBe('snow');
+    expect(effectiveTerrainAt(s, 2, 3)).toBe('snow');
+    // Existing objects are 100% preserved
+    expect(s.objects.length).toBe(objCountBefore);
+    expect(s.objects.some((o) => o.type === 'path' && o.gx === 2 && o.gy === 3)).toBe(true);
+    expect(s.objects.some((o) => o.plant && o.gx === 2 && o.gy === 3)).toBe(true);
+    expect(s.objects.some((o) => o.type === 'cottage' && o.gx === 5 && o.gy === 1)).toBe(true);
+
+    // Duplicate snow placement on (2, 3) is prevented cleanly
+    expect(canPlace(s, ITEM_BY_ID.snow_patch, 2, 3, 0).ok).toBe(false);
+
+    // Transform (2, 3) from Snow to Sand, and place adjacent Sand at (3, 3) to verify neighbor transition masks
+    expect(run(s, 'placeItem', { itemId: 'sand_patch', gx: 2, gy: 3, rot: 0 }).ok).toBe(true);
+    expect(run(s, 'placeItem', { itemId: 'sand_patch', gx: 3, gy: 3, rot: 0 }).ok).toBe(true);
+    expect(run(s, 'placeItem', { itemId: 'snow_patch', gx: 2, gy: 2, rot: 0 }).ok).toBe(true);
+    expect(customTerrainAt(s, 2, 3)).toBe('sand');
+    expect(terrainNeighborMask(s.customTerrain, 2, 3, 'sand')).toBe(2); // East neighbor (3,3) is sand
+    expect(terrainOppositeNeighborMask(s.customTerrain, 2, 3, 'sand')).toBe(1); // North neighbor (2,2) is snow
+
+    // Restore (2, 3) back to default meadow Green Grass using grass_patch
+    expect(run(s, 'placeItem', { itemId: 'grass_patch', gx: 2, gy: 3, rot: 0 }).ok).toBe(true);
+    expect(customTerrainAt(s, 2, 3)).toBeUndefined();
+    expect(effectiveTerrainAt(s, 2, 3)).toBe('grass');
+
+    // Persistence round-trip preserves customTerrain and objects
+    const reloaded = validateState(JSON.parse(JSON.stringify(s)), T0)!;
+    expect(reloaded).not.toBeNull();
+    expect(customTerrainAt(reloaded, 3, 3)).toBe('sand');
+    expect(customTerrainAt(reloaded, 2, 2)).toBe('snow');
+    expect(customTerrainAt(reloaded, 5, 1)).toBe('snow');
+  });
+
+  it('supports purchasing, placing, and rotating all Winter, Christmas, Desert, and Beach/Summer decorations', () => {
+    const s = mk();
+    s.stage = 10;
+    s.tokens = 50_000;
+
+    const newIds = [
+      // Winter
+      'snowman', 'snow_pine', 'ice_crystal', 'frozen_pond', 'winter_lantern', 'snow_bench', 'ice_sculpture', 'snowy_fence',
+      // Christmas
+      'christmas_tree', 'reindeer', 'gift_boxes', 'candy_cane', 'christmas_wreath', 'santas_sleigh', 'festive_streetlamp', 'christmas_stall',
+      // Desert
+      'cactus_small', 'cactus_tall', 'cactus_flower', 'desert_rock', 'desert_palm', 'desert_tent', 'oasis_fountain', 'desert_lantern',
+      // Beach & Summer
+      'beach_umbrella', 'beach_chair', 'sandcastle', 'beach_towel', 'seashell_cluster', 'tropical_plant', 'coconut_tree', 'picnic_umbrella',
+    ];
+
+    for (const id of newIds) {
+      const def = ITEM_BY_ID[id];
+      expect(def).toBeDefined();
+      expect(run(s, 'buy', { key: decorKey(id), qty: 1 }).ok).toBe(true);
+      expect(run(s, 'placeItem', { itemId: id, gx: 10, gy: 10, rot: 0 }).ok).toBe(true);
+      const placed = s.objects.find((o) => o.type === id)!;
+      expect(placed).toBeDefined();
+      if (def.rotatable) {
+        expect(run(s, 'rotateObject', { id: placed.id }).ok).toBe(true);
+        expect(placed.rot).toBe(1);
+      }
+      expect(run(s, 'removeObject', { id: placed.id }).ok).toBe(true);
+    }
+  });
+});
+
 

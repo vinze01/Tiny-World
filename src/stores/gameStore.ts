@@ -4,10 +4,11 @@ import { ACHIEVEMENTS, CREATURE_BY_ID, ITEM_BY_ID, PLANT_BY_ID, STAGES, TREAT_ID
 import { effectiveEmotion, expansionStatus } from '../core/actions';
 import { skyAt } from '../core/daycycle';
 import { activeBiome, activeWeather, nextEventEtaMs } from '../core/events';
+import { footprintCells, objDef } from '../core/grid';
 import { canWater, isBlooming } from '../core/plants';
 import { SaveStore } from '../core/persistence';
 import { createInitialState } from '../core/state';
-import type { ActionResult, CreatureId, CreatureInteractionKind, CycleMode, Effect, GameState, PlantId, Settings } from '../core/types';
+import type { ActionResult, CreatureId, CreatureInteractionKind, CycleMode, Effect, GameState, PlacedObject, PlantId, Settings } from '../core/types';
 import { sound } from '../audio/sound';
 
 export type SurfaceMode = 'popup' | 'sidepanel' | 'full';
@@ -17,7 +18,8 @@ export type BuildMode =
   | { kind: 'none' }
   | { kind: 'place-item'; itemId: string; rot: 0 | 1 }
   | { kind: 'plant-seed'; plantId: PlantId }
-  | { kind: 'move-object'; objectId: string; rot: 0 | 1 };
+  | { kind: 'move-object'; objectId: string; rot: 0 | 1 }
+  | { kind: 'move-group'; objectIds: string[]; anchorGx: number; anchorGy: number };
 
 export interface ToastItem {
   id: number;
@@ -37,6 +39,8 @@ export const useGameStore = defineStore('game', () => {
   const buildMode = ref<BuildMode>({ kind: 'none' });
   const cursorCell = ref<{ gx: number; gy: number }>({ gx: 3, gy: 3 });
   const selectedObjectId = ref<string | null>(null);
+  const multiSelectMode = ref(false);
+  const selectedObjectIds = ref<string[]>([]);
   const selectedCreatureId = ref<CreatureId | null>(null);
   const toasts = ref<ToastItem[]>([]);
   const welcomeLines = ref<string[]>([]);
@@ -140,6 +144,10 @@ export const useGameStore = defineStore('game', () => {
   const selectedObject = computed(() =>
     state.value.objects.find((o) => o.id === selectedObjectId.value) ?? null,
   );
+  const selectedObjects = computed(() => {
+    const idSet = new Set(selectedObjectIds.value);
+    return state.value.objects.filter((o) => idSet.has(o.id));
+  });
 
   // Advance onboarding tutorial steps automatically when objectives are met
   const checkTutorialAdvance = (actionName: string) => {
@@ -149,7 +157,7 @@ export const useGameStore = defineStore('game', () => {
       void saveStore.mutate('setTutorial', { step: 3 }).then((o) => (state.value = o.state));
     } else if (t.step === 3 && actionName === 'plantSeed') {
       void saveStore.mutate('setTutorial', { step: 4 }).then((o) => (state.value = o.state));
-    } else if (t.step === 4 && (actionName === 'placeItem' || actionName === 'moveObject')) {
+    } else if (t.step === 4 && (actionName === 'placeItem' || actionName === 'moveObject' || actionName === 'moveObjects')) {
       void saveStore.mutate('setTutorial', { step: 5 }).then((o) => (state.value = o.state));
     }
   }
@@ -177,7 +185,81 @@ export const useGameStore = defineStore('game', () => {
     return r;
   }
 
-  const tapObject = async (id: string) => {
+  const toggleObjectInSelection = (id: string) => {
+    const obj = state.value.objects.find((o) => o.id === id);
+    if (!obj) return;
+    const prevSingle =
+      !multiSelectMode.value && selectedObjectId.value
+        ? state.value.objects.find((o) => o.id === selectedObjectId.value)
+        : undefined;
+    multiSelectMode.value = true;
+    selectedObjectId.value = null;
+    selectedCreatureId.value = null;
+    activeTab.value = 'none';
+
+    if (prevSingle) {
+      if (prevSingle.id === id) {
+        selectedObjectIds.value = [id];
+      } else {
+        const base = new Set(selectedObjectIds.value);
+        base.add(prevSingle.id);
+        base.add(id);
+        selectedObjectIds.value = [...base];
+      }
+      sound.play('click');
+      return;
+    }
+
+    const exists = selectedObjectIds.value.includes(id);
+    selectedObjectIds.value = exists
+      ? selectedObjectIds.value.filter((x) => x !== id)
+      : [...selectedObjectIds.value, id];
+    sound.play('click');
+  };
+
+  const enterMultiSelect = (initialId?: string) => {
+    const targetId = initialId ?? selectedObjectId.value ?? undefined;
+    const obj = targetId ? state.value.objects.find((o) => o.id === targetId) : undefined;
+    buildMode.value = { kind: 'none' };
+    multiSelectMode.value = true;
+    selectedObjectId.value = null;
+    selectedCreatureId.value = null;
+    activeTab.value = 'none';
+    selectedObjectIds.value = obj ? [obj.id] : [];
+    sound.play('click');
+  };
+
+  const selectSimilarObjects = () => {
+    const cur = selectedObjects.value;
+    if (!cur.length) return 0;
+    const keyOf = (o: PlacedObject) => `${o.plant ? 'plant' : 'item'}:${o.type}`;
+    const targets = new Set(cur.map(keyOf));
+    const currentSet = new Set(selectedObjectIds.value);
+    const additions = state.value.objects
+      .filter((o) => targets.has(keyOf(o)) && !currentSet.has(o.id))
+      .map((o) => o.id);
+    if (!additions.length) return 0;
+    selectedObjectIds.value = [...selectedObjectIds.value, ...additions];
+    sound.play('click');
+    return additions.length;
+  };
+
+  const clearMultiSelect = () => {
+    selectedObjectIds.value = [];
+    sound.play('click');
+  };
+
+  const exitMultiSelect = () => {
+    multiSelectMode.value = false;
+    selectedObjectIds.value = [];
+    sound.play('click');
+  };
+
+  const tapObject = async (id: string, opts?: { multi?: boolean }) => {
+    if (multiSelectMode.value || opts?.multi) {
+      toggleObjectInSelection(id);
+      return;
+    }
     const obj = state.value.objects.find((o) => o.id === id);
     if (!obj) return;
     const wasSelected = selectedObjectId.value === id;
@@ -209,6 +291,8 @@ export const useGameStore = defineStore('game', () => {
   }
 
   const selectAndPetCreature = async (id: CreatureId) => {
+    multiSelectMode.value = false;
+    selectedObjectIds.value = [];
     selectedCreatureId.value = id;
     selectedObjectId.value = null;
     const r = await act('petCreature', { id });
@@ -296,6 +380,8 @@ export const useGameStore = defineStore('game', () => {
 
   const startPlaceDecor = (itemId: string) => {
     buildMode.value = { kind: 'place-item', itemId, rot: 0 };
+    multiSelectMode.value = false;
+    selectedObjectIds.value = [];
     selectedObjectId.value = null;
     selectedCreatureId.value = null;
     activeTab.value = 'none';
@@ -304,6 +390,8 @@ export const useGameStore = defineStore('game', () => {
 
   const startPlantSeed = (plantId: PlantId) => {
     buildMode.value = { kind: 'plant-seed', plantId };
+    multiSelectMode.value = false;
+    selectedObjectIds.value = [];
     selectedObjectId.value = null;
     selectedCreatureId.value = null;
     activeTab.value = 'none';
@@ -312,11 +400,49 @@ export const useGameStore = defineStore('game', () => {
 
   const startMoveObject = (id: string) => {
     const o = state.value.objects.find((x) => x.id === id);
-    if (!o || o.locked || o.plant) return;
-    buildMode.value = { kind: 'move-object', objectId: id, rot: o.rot };
+    if (!o) return;
+    multiSelectMode.value = false;
+    selectedObjectIds.value = [];
     selectedObjectId.value = null;
+    activeTab.value = 'none';
+    cursorCell.value = { gx: o.gx, gy: o.gy };
+    buildMode.value = { kind: 'move-object', objectId: id, rot: o.rot };
     sound.play('click');
   }
+
+  const startMoveSelected = () => {
+    const objs = selectedObjects.value;
+    if (!objs.length) return;
+    if (objs.length === 1) {
+      startMoveObject(objs[0].id);
+      return;
+    }
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (const o of objs) {
+      for (const c of footprintCells(objDef(o), o.gx, o.gy, o.rot)) {
+        if (c.gx < minX) minX = c.gx;
+        if (c.gx > maxX) maxX = c.gx;
+        if (c.gy < minY) minY = c.gy;
+        if (c.gy > maxY) maxY = c.gy;
+      }
+    }
+    const anchorGx = Math.round((minX + maxX) / 2);
+    const anchorGy = Math.round((minY + maxY) / 2);
+    multiSelectMode.value = false;
+    selectedObjectId.value = null;
+    activeTab.value = 'none';
+    cursorCell.value = { gx: anchorGx, gy: anchorGy };
+    buildMode.value = {
+      kind: 'move-group',
+      objectIds: objs.map((o) => o.id),
+      anchorGx,
+      anchorGy,
+    };
+    sound.play('click');
+  };
 
   const rotatePlacement = () => {
     const bm = buildMode.value;
@@ -327,7 +453,7 @@ export const useGameStore = defineStore('game', () => {
       sound.play('click');
     } else if (bm.kind === 'move-object') {
       const o = state.value.objects.find((x) => x.id === bm.objectId);
-      const def = o ? ITEM_BY_ID[o.type] : undefined;
+      const def = o && !o.plant ? ITEM_BY_ID[o.type] : undefined;
       if (!def?.rotatable) return;
       buildMode.value = { ...bm, rot: bm.rot === 1 ? 0 : 1 };
       sound.play('click');
@@ -335,7 +461,13 @@ export const useGameStore = defineStore('game', () => {
   };
 
   const cancelBuild = () => {
+    const wasGroup = buildMode.value.kind === 'move-group';
     buildMode.value = { kind: 'none' };
+    if (wasGroup && selectedObjects.value.length > 0) {
+      multiSelectMode.value = true;
+    } else {
+      selectedObjectIds.value = [];
+    }
     sound.play('click');
   }
 
@@ -364,6 +496,18 @@ export const useGameStore = defineStore('game', () => {
         sound.play('place');
         buildMode.value = { kind: 'none' };
       }
+    } else if (bm.kind === 'move-group') {
+      const r = await act('moveObjects', {
+        ids: bm.objectIds,
+        dx: gx - bm.anchorGx,
+        dy: gy - bm.anchorGy,
+      });
+      if (r.ok) {
+        sound.play('place');
+        buildMode.value = { kind: 'none' };
+        multiSelectMode.value = false;
+        selectedObjectIds.value = [];
+      }
     }
   }
 
@@ -372,6 +516,7 @@ export const useGameStore = defineStore('game', () => {
     if (r.ok) {
       sound.play('remove');
       if (selectedObjectId.value === id) selectedObjectId.value = null;
+      selectedObjectIds.value = selectedObjectIds.value.filter((x) => x !== id);
       pushToast('Stored back in your bag.');
     }
   };
@@ -387,6 +532,7 @@ export const useGameStore = defineStore('game', () => {
     if (r.ok) {
       sound.play('remove');
       if (selectedObjectId.value === id) selectedObjectId.value = null;
+      selectedObjectIds.value = selectedObjectIds.value.filter((x) => x !== id);
     }
     return r;
   };
@@ -396,6 +542,7 @@ export const useGameStore = defineStore('game', () => {
     if (r.ok) {
       sound.play('collect');
       if (selectedObjectId.value === id) selectedObjectId.value = null;
+      selectedObjectIds.value = selectedObjectIds.value.filter((x) => x !== id);
     }
     return r;
   };
@@ -471,6 +618,8 @@ export const useGameStore = defineStore('game', () => {
     state.value = await saveStore.reset();
     sound.configure(state.value.settings);
     selectedObjectId.value = null;
+    multiSelectMode.value = false;
+    selectedObjectIds.value = [];
     selectedCreatureId.value = null;
     buildMode.value = { kind: 'none' };
     pushToast('Started a fresh island.', 'info');
@@ -485,9 +634,12 @@ export const useGameStore = defineStore('game', () => {
     buildMode,
     cursorCell,
     selectedObjectId,
+    multiSelectMode,
+    selectedObjectIds,
     selectedCreatureId,
     selectedCreature,
     selectedObject,
+    selectedObjects,
     toasts,
     welcomeLines,
     nowTick,
@@ -508,6 +660,11 @@ export const useGameStore = defineStore('game', () => {
     pushToast,
     collectPickup,
     tapObject,
+    enterMultiSelect,
+    toggleObjectInSelection,
+    selectSimilarObjects,
+    clearMultiSelect,
+    exitMultiSelect,
     tapPond,
     selectAndPetCreature,
     feedCreature,
@@ -522,6 +679,7 @@ export const useGameStore = defineStore('game', () => {
     startPlaceDecor,
     startPlantSeed,
     startMoveObject,
+    startMoveSelected,
     rotatePlacement,
     rotateObject,
     cancelBuild,

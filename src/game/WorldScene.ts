@@ -1,5 +1,13 @@
 import Phaser from 'phaser';
-import { ensureIslandTextures, getIsland, islandTexKey, itemTexKey, registerPhaserAssets, spriteMeta } from '../art/atlas';
+import {
+  ensureCustomTerrainTexture,
+  ensureIslandTextures,
+  getIsland,
+  islandTexKey,
+  itemTexKey,
+  registerPhaserAssets,
+  spriteMeta,
+} from '../art/atlas';
 import { ITEM_BY_ID } from '../core/catalog';
 import { effectiveEmotion } from '../core/actions';
 import {
@@ -16,6 +24,7 @@ import {
 import {
   BRIDGE_IDS,
   PLANT_ITEM,
+  canMoveObjects,
   canPlace,
   cellCenter,
   footprintCells,
@@ -25,6 +34,8 @@ import {
   objDef,
   terrainAt,
   terrainMap,
+  terrainNeighborMask,
+  terrainOppositeNeighborMask,
   walkGrid,
   worldToCell,
 } from '../core/grid';
@@ -57,8 +68,10 @@ export class WorldScene extends Phaser.Scene {
   private islandSpr!: Phaser.GameObjects.Image;
   private highlightGfx!: Phaser.GameObjects.Graphics;
   private previewSpr!: Phaser.GameObjects.Image;
+  private groupPreviewSprs: Phaser.GameObjects.Image[] = [];
 
   private objSprites = new Map<string, Phaser.GameObjects.Image>();
+  private terrainSprites = new Map<string, Phaser.GameObjects.Image>();
   private objFlames = new Map<string, Phaser.GameObjects.Sprite>();
   private objGlows = new Map<string, Phaser.GameObjects.Image>();
   private pickupSprites = new Map<string, Phaser.GameObjects.Image>();
@@ -115,9 +128,9 @@ export class WorldScene extends Phaser.Scene {
       this.clouds.push({ spr, vx: 3.5 + (i % 3) * 1.4, baseY: spr.y });
     }
 
-    // 3. Floating island base (lazy stage+biome texture loading)
+    // 3. Floating island base (unified green meadow across all stages unless biomeOverride is explicitly set)
     this.currentStage = this.store.state.stage;
-    this.currentBiome = this.store.biome;
+    this.currentBiome = this.store.state.settings.biomeOverride ?? 'meadow';
     ensureIslandTextures(this, this.currentStage, this.currentBiome);
     const isl = getIsland(this.currentStage, 0, this.currentBiome);
     this.islandSpr = this.add
@@ -251,7 +264,9 @@ export class WorldScene extends Phaser.Scene {
       this.dragStart = null;
       if (moved) return;
       const wp = cam.getWorldPoint(p.x, p.y);
-      this.handleWorldTap(wp.x, wp.y);
+      const ev = p.event as MouseEvent | PointerEvent | undefined;
+      const multi = !!(ev && (ev.shiftKey || ev.ctrlKey || ev.metaKey));
+      this.handleWorldTap(wp.x, wp.y, multi);
     });
 
     this.input.keyboard?.on('keydown', (ev: KeyboardEvent) => {
@@ -279,6 +294,7 @@ export class WorldScene extends Phaser.Scene {
         this.store.rotatePlacement();
       } else if (ev.key === 'Escape') {
         if (this.store.buildMode.kind !== 'none') this.store.cancelBuild();
+        else if (this.store.multiSelectMode) this.store.exitMultiSelect();
         else {
           this.store.selectedObjectId = null;
           this.store.selectedCreatureId = null;
@@ -286,7 +302,7 @@ export class WorldScene extends Phaser.Scene {
         }
       } else if (ev.key === 'Enter' || ev.key === ' ') {
         const pt = cellCenter(cur.gx, cur.gy);
-        this.handleWorldTap(pt.x, pt.y);
+        this.handleWorldTap(pt.x, pt.y, ev.shiftKey || ev.ctrlKey || ev.metaKey);
         ev.preventDefault();
       }
     });
@@ -329,11 +345,22 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  private handleWorldTap(wx: number, wy: number) {
+  private handleWorldTap(wx: number, wy: number, multi = false) {
     const cell = worldToCell(wx, wy);
     const bm = this.store.buildMode;
     if (bm.kind !== 'none') {
       void this.store.commitPlacementAt(cell.gx, cell.gy);
+      return;
+    }
+
+    const objs = this.store.state.objects.filter((o) =>
+      footprintCells(objDef(o), o.gx, o.gy, o.rot).some((c) => c.gx === cell.gx && c.gy === cell.gy),
+    );
+    const topObj = objs.find((o) => objDef(o).layer === 'object') ?? objs[0];
+
+    // Multi-select prioritizes toggling objects directly without triggering harvests, pond, or Pipkins
+    if (this.store.multiSelectMode || multi) {
+      if (topObj) void this.store.tapObject(topObj.id, { multi: true });
       return;
     }
 
@@ -345,11 +372,6 @@ export class WorldScene extends Phaser.Scene {
         return;
       }
     }
-
-    const objs = this.store.state.objects.filter((o) =>
-      footprintCells(objDef(o), o.gx, o.gy, o.rot).some((c) => c.gx === cell.gx && c.gy === cell.gy),
-    );
-    const topObj = objs.find((o) => objDef(o).layer === 'object') ?? objs[0];
 
     // 2. Prioritize plants so Pipkins never block watering/harvesting
     if (topObj?.plant) {
@@ -447,6 +469,15 @@ export class WorldScene extends Phaser.Scene {
     this.celestial.setAlpha(0.92);
   }
 
+  private objectVisualTex(o: PlacedObject, now: number, rotOverride?: 0 | 1): { key: string; flip: boolean } {
+    if (o.plant) return { key: `plant:${o.type}:${plantStage(o, now)}`, flip: false };
+    return itemTexKey(o.type, rotOverride ?? o.rot);
+  }
+
+  private hideGroupPreviews() {
+    for (const spr of this.groupPreviewSprs) spr.setVisible(false);
+  }
+
   private objectScreenPos(o: PlacedObject) {
     const d = objDef(o);
     const { w, d: dep } = footprintDims(d, o.rot);
@@ -493,32 +524,65 @@ export class WorldScene extends Phaser.Scene {
   private syncAll(dt: number) {
     const st = this.store.state;
     const sky = this.store.sky;
-    const biome = this.store.biome;
+    const islandBiome: BiomeId = st.settings.biomeOverride ?? 'meadow';
     const reduced = st.settings.reducedMotion;
     const now = this.store.nowTick;
 
     // Island stage / biome / water frame
-    if (this.currentStage !== st.stage || this.currentBiome !== biome) {
+    if (this.currentStage !== st.stage || this.currentBiome !== islandBiome) {
       const stageChanged = this.currentStage !== st.stage;
       this.currentStage = st.stage;
-      this.currentBiome = biome;
-      ensureIslandTextures(this, st.stage, biome);
+      this.currentBiome = islandBiome;
+      ensureIslandTextures(this, st.stage, islandBiome);
       if (stageChanged) this.centerCamera();
     }
-    const isl = getIsland(st.stage, this.waterFrame, biome);
+    const isl = getIsland(st.stage, this.waterFrame, islandBiome);
     const bob = reduced ? 0 : Math.sin(this.time.now * 0.0014) * 1.6;
     this.islandSpr
-      .setTexture(islandTexKey(st.stage, biome, this.waterFrame))
+      .setTexture(islandTexKey(st.stage, islandBiome, this.waterFrame))
       .setPosition(-isl.ox, -isl.oy + bob)
       .setTint(sky.tint);
 
+    // Sync player-placed custom terrain patches (Snow Patch, Sand Patch) with neighbor-aware transitions
+    const liveTerrainKeys = new Set<string>();
+    const customTerrain = st.customTerrain ?? {};
+    for (const [k, kind] of Object.entries(customTerrain)) {
+      if (kind !== 'snow' && kind !== 'sand') continue;
+      const [gxStr, gyStr] = k.split(',');
+      const gx = Number(gxStr);
+      const gy = Number(gyStr);
+      if (!Number.isInteger(gx) || !Number.isInteger(gy)) continue;
+      const baseT = terrainAt(st.stage, gx, gy);
+      if (baseT === 'void' || isWaterTerrain(baseT)) continue;
+      liveTerrainKeys.add(k);
+      const sameMask = terrainNeighborMask(customTerrain, gx, gy, kind);
+      const otherMask = terrainOppositeNeighborMask(customTerrain, gx, gy, kind);
+      const texKey = ensureCustomTerrainTexture(this, kind, sameMask, otherMask);
+      let tspr = this.terrainSprites.get(k);
+      if (!tspr) {
+        tspr = this.add.image(0, 0, texKey).setOrigin(0.5, 0);
+        this.terrainSprites.set(k, tspr);
+      }
+      if (tspr.texture.key !== texKey) tspr.setTexture(texKey);
+      const top = gridToWorld(gx, gy);
+      tspr.setPosition(top.x, top.y + bob).setDepth(-490 + (gx + gy) * 0.001).setTint(sky.tint);
+    }
+    for (const [k, tspr] of this.terrainSprites.entries()) {
+      if (!liveTerrainKeys.has(k)) {
+        tspr.destroy();
+        this.terrainSprites.delete(k);
+      }
+    }
+
     // Sync placed objects
+    const bm = this.store.buildMode;
+    const movingSet = new Set(
+      bm.kind === 'move-object' ? [bm.objectId] : bm.kind === 'move-group' ? bm.objectIds : [],
+    );
     const liveIds = new Set<string>();
     for (const o of st.objects) {
       liveIds.add(o.id);
-      const { key: texKey, flip } = o.plant
-        ? { key: `plant:${o.type}:${plantStage(o, now)}`, flip: false }
-        : itemTexKey(o.type, o.rot);
+      const { key: texKey, flip } = this.objectVisualTex(o, now);
       const meta = spriteMeta(texKey);
       let spr = this.objSprites.get(o.id);
       if (!spr) {
@@ -541,9 +605,12 @@ export class WorldScene extends Phaser.Scene {
       spr.setDepth(pos.sortY);
       spr.setTint(o.type === 'glowflower' && plantStage(o, now) === 4 ? 0xffffff : sky.tint);
 
-      // Fade tall trees or buildings when a Pipkin is behind their canopy
+      // Fade moving items to highlight pickup, or fade tall trees/buildings when a Pipkin is behind their canopy
+      const isLifted = movingSet.has(o.id);
       const tags = o.plant ? [] : (ITEM_BY_ID[o.type]?.tags ?? []);
-      if (tags.includes('tree') || tags.includes('building')) {
+      if (isLifted) {
+        spr.setAlpha(0.35);
+      } else if (tags.includes('tree') || tags.includes('building')) {
         let occluded = false;
         for (const actor of this.actors.values()) {
           const awp = cellCenter(actor.gx, actor.gy);
@@ -564,7 +631,7 @@ export class WorldScene extends Phaser.Scene {
           fl = this.add.sprite(pos.x, pos.y - 9, 'fx:flame0').setOrigin(0.5, 0.92).play('flame');
           this.objFlames.set(o.id, fl);
         }
-        fl.setPosition(pos.x, pos.y - 9 + bob).setDepth(pos.sortY + 2);
+        fl.setPosition(pos.x, pos.y - 9 + bob).setAlpha(isLifted ? 0.35 : 1).setDepth(pos.sortY + 2);
       }
 
       // Warm night/ambient glow for lights, cozy buildings, crystals, and blooming glowflowers
@@ -582,7 +649,7 @@ export class WorldScene extends Phaser.Scene {
         }
         const flicker = reduced ? 1 : 0.9 + 0.1 * Math.sin(this.time.now * 0.01 + o.gx);
         const col =
-          o.type === 'glowflower' || o.type === 'ice_lantern' || o.type === 'ice_crystal'
+          o.type === 'glowflower' || o.type === 'ice_lantern' || o.type === 'ice_crystal' || o.type === 'ice_sculpture'
             ? 0x7af0ff
             : o.type === 'nebula_orb' || o.type === 'planetarium'
               ? 0xc084fc
@@ -590,7 +657,7 @@ export class WorldScene extends Phaser.Scene {
         gl.setTint(col)
           .setPosition(pos.x, pos.y - 14 + bob)
           .setScale(itemDef?.category === 'buildings' ? 1.35 : 0.95)
-          .setAlpha(Math.max(0.18, sky.glow * 0.55) * flicker)
+          .setAlpha(Math.max(0.18, sky.glow * 0.55) * flicker * (isLifted ? 0.35 : 1))
           .setDepth(pos.sortY + 2);
       }
     }
@@ -709,7 +776,15 @@ export class WorldScene extends Phaser.Scene {
 
     if (bm.kind === 'none') {
       this.previewSpr.setVisible(false);
-      if (this.store.selectedObject) {
+      this.hideGroupPreviews();
+      if (this.store.multiSelectMode || this.store.selectedObjects.length > 0) {
+        for (const o of this.store.selectedObjects) {
+          const def = objDef(o);
+          const { w, d } = footprintDims(def, o.rot);
+          const col = o.locked ? 0xfb923c : def.layer === 'ground' ? 0x38bdf8 : 0xffe27a;
+          drawDiamond(o.gx, o.gy, w, d, col, 0.28);
+        }
+      } else if (this.store.selectedObject) {
         const o = this.store.selectedObject;
         const def = objDef(o);
         const { w, d } = footprintDims(def, o.rot);
@@ -719,19 +794,76 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
+    if (bm.kind === 'move-group') {
+      this.previewSpr.setVisible(false);
+      const idSet = new Set(bm.objectIds);
+      const movingObjs = this.store.state.objects.filter((o) => idSet.has(o.id));
+      const dx = cell.gx - bm.anchorGx;
+      const dy = cell.gy - bm.anchorGy;
+      const check = canMoveObjects(this.store.state, movingObjs, dx, dy);
+      const blockedSet = new Set(check.blockedIds);
+      const now = this.store.nowTick;
+
+      const sorted = [...movingObjs].sort((a, b) => {
+        const pa = this.objectScreenPos(a);
+        const pb = this.objectScreenPos(b);
+        return pa.sortY - pb.sortY;
+      });
+
+      sorted.forEach((o, i) => {
+        const def = objDef(o);
+        const { w, d } = footprintDims(def, o.rot);
+        const tx = o.gx + dx;
+        const ty = o.gy + dy;
+        const valid = !blockedSet.has(o.id);
+        drawDiamond(tx, ty, w, d, valid ? 0x6ee86e : 0xff6262, 0.32);
+
+        const { key: texKey, flip } = this.objectVisualTex(o, now);
+        const meta = spriteMeta(texKey);
+        const front = gridToWorld(tx + w, ty + d);
+        const ax = flip ? 1 - meta.ax / meta.w : meta.ax / meta.w;
+        let spr = this.groupPreviewSprs[i];
+        if (!spr) {
+          spr = this.add.image(0, 0, texKey).setAlpha(0.78);
+          this.groupPreviewSprs.push(spr);
+        }
+        spr
+          .setTexture(texKey)
+          .setFlipX(flip)
+          .setOrigin(ax, 1)
+          .setPosition(front.x, front.y + bob)
+          .setDepth(910 + i * 0.01)
+          .setTint(valid ? 0xb8ffbe : 0xff9a9a)
+          .setVisible(true);
+      });
+      for (let i = sorted.length; i < this.groupPreviewSprs.length; i++) {
+        this.groupPreviewSprs[i].setVisible(false);
+      }
+      return;
+    }
+
+    this.hideGroupPreviews();
+
     if (bm.kind === 'place-item' || bm.kind === 'move-object') {
-      const itemId =
-        bm.kind === 'place-item'
-          ? bm.itemId
-          : (this.store.state.objects.find((x) => x.id === bm.objectId)?.type ?? 'bench');
-      const def = ITEM_BY_ID[itemId];
+      const movingObj = bm.kind === 'move-object'
+        ? this.store.state.objects.find((x) => x.id === bm.objectId)
+        : undefined;
+      if (bm.kind === 'move-object' && !movingObj) {
+        this.previewSpr.setVisible(false);
+        return;
+      }
+      const isPlant = !!movingObj?.plant;
+      const def = movingObj ? objDef(movingObj) : ITEM_BY_ID[bm.kind === 'place-item' ? bm.itemId : ''];
       if (!def) return;
-      const ignoreId = bm.kind === 'move-object' ? bm.objectId : undefined;
-      const chk = canPlace(this.store.state, def, cell.gx, cell.gy, bm.rot, ignoreId);
-      const { w, d } = footprintDims(def, bm.rot);
+      const rot: 0 | 1 = !isPlant && def.rotatable && bm.rot === 1 ? 1 : 0;
+      const ignoreId = movingObj?.id;
+      const chk = canPlace(this.store.state, def, cell.gx, cell.gy, rot, ignoreId, { plant: isPlant });
+      const { w, d } = footprintDims(def, rot);
       drawDiamond(cell.gx, cell.gy, w, d, chk.ok ? 0x6ee86e : 0xff6262, 0.32);
 
-      const { key: texKey, flip } = itemTexKey(itemId, bm.rot);
+      const { key: texKey, flip } = movingObj
+        ? this.objectVisualTex(movingObj, this.store.nowTick, rot)
+        : itemTexKey(def.id, rot);
       const meta = spriteMeta(texKey);
       const front = gridToWorld(cell.gx + w, cell.gy + d);
       const ax = flip ? 1 - meta.ax / meta.w : meta.ax / meta.w;

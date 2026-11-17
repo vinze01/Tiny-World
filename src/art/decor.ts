@@ -975,4 +975,515 @@ export const dreamcatcher = (rot: 0 | 1 = 0): SpriteDef => {
   return d;
 };
 
+const SNOW_PAL = [0xb8d4ec, 0xd8ecfa, 0xedf7ff, 0xffffff];
+const ICE_PAL = [0x60a5fa, 0x93c5fd, 0xdbeafe, 0xffffff];
+const FESTIVE_RED = ramp(0xdc2626);
+const FESTIVE_GREEN = ramp(0x16a34a);
+const FESTIVE_GOLD = ramp(0xf59e0b);
+const SAND_PAL = [0xc9a76a, 0xdfc184, 0xedd39a, 0xf8e6b8];
+const SANDSTONE_PAL = ramp(0xd99b66);
+
+export const frozenPond = (): SpriteDef => {
+  const [p, d] = sprite(32, 16);
+  // Icy decorative ground pond with snow-dusted stone rim and crystalline glints
+  p.ellipse(16, 8, 13.5, 6.5, SNOW_PAL[2]);
+  p.ellipse(16, 8, 11, 5, ICE_PAL[1]);
+  p.ellipse(15, 7.5, 8.5, 3.8, ICE_PAL[2]);
+  // Glint streaks on the frozen surface
+  p.line(11, 7, 16, 5, ICE_PAL[3]);
+  p.line(15, 9, 20, 7, ICE_PAL[3]);
+  // Snow stones around the rim
+  p.ellipse(7, 9, 2.2, 1.4, STONE[2]);
+  p.ellipse(24, 7, 2.2, 1.4, STONE[2]);
+  p.set(7, 8, 0xffffff);
+  p.set(24, 6, 0xffffff);
+  p.outline();
+  return d;
+};
+
+export const winterLantern = (rot: 0 | 1 = 0): SpriteDef => {
+  const [p, d] = sprite(28, 36);
+  const cx = 14, base = 28;
+  const dir = rot === 1 ? -1 : 1;
+  // Fluffy snow drift around base
+  p.blob(cx, base - 2, 7.5, 3.5, SNOW_PAL, 0.1, 111);
+  // Dark iron lantern post & warm glowing chamber
+  p.rect(cx - 1, base - 16, 3, 13, 0x334155);
+  p.rect(cx - 3, base - 21, 7, 6, 0xf59e0b);
+  p.rect(cx - 2, base - 20, 5, 4, 0xfef08a);
+  // Snow cap on lantern roof
+  p.poly([[cx - 5, base - 21], [cx, base - 25], [cx + 5, base - 21]], 0x334155);
+  p.ellipse(cx - dir, base - 23, 3.5, 1.6, 0xffffff);
+  p.outline();
+  p.shadow(cx + 1, base, 8, 3, 45);
+  return d;
+};
+
+export const snowBench = (rot: 0 | 1 = 0): SpriteDef => {
+  const [p, d] = sprite(32, 32);
+  const iso = new Iso(16, 16);
+  const cx = 16;
+  if (rot === 1) {
+    box(p, iso, 0.3, 0.36, 0.14, 0.88, 8, 17, WOOD, 7);
+    box(p, iso, 0.34, 0.66, 0.16, 0.24, 0, 8, WOOD);
+    box(p, iso, 0.34, 0.66, 0.76, 0.84, 0, 8, WOOD);
+    box(p, iso, 0.3, 0.7, 0.12, 0.9, 7, 10, WOOD, 7);
+    // Light snow accumulation on top rail and seat corner
+    box(p, iso, 0.29, 0.38, 0.16, 0.82, 16, 18, SNOW_PAL);
+    box(p, iso, 0.34, 0.68, 0.16, 0.42, 10, 11, SNOW_PAL);
+    p.outline();
+    p.shadow(cx - 2, 24, 13, 4, 60);
+    return d;
+  }
+  box(p, iso, 0.14, 0.88, 0.3, 0.36, 8, 17, WOOD, 7);
+  box(p, iso, 0.16, 0.24, 0.34, 0.66, 0, 8, WOOD);
+  box(p, iso, 0.76, 0.84, 0.34, 0.66, 0, 8, WOOD);
+  box(p, iso, 0.12, 0.9, 0.3, 0.7, 7, 10, WOOD, 7);
+  // Light snow accumulation on top rail and seat corner
+  box(p, iso, 0.16, 0.82, 0.29, 0.38, 16, 18, SNOW_PAL);
+  box(p, iso, 0.16, 0.42, 0.34, 0.68, 10, 11, SNOW_PAL);
+  p.outline();
+  p.shadow(cx + 2, 24, 13, 4, 60);
+  return d;
+};
+
+export const iceSculpture = (rot: 0 | 1 = 0): SpriteDef => {
+  const [p, d] = sprite(30, 38);
+  const cx = 15, base = 30;
+  const dir = rot === 1 ? -1 : 1;
+  // Frosted pedestal
+  box(p, new Iso(cx, base - 8), 0.22, 0.78, 0.22, 0.78, 0, 6, SNOW_PAL);
+  // Crystalline sculpted ice Pipkin/swan figure
+  p.blob(cx, base - 14, 5.5, 6, ICE_PAL, 0.08, 112);
+  p.blob(cx + 2 * dir, base - 20, 4, 4, ICE_PAL, 0.08, 113);
+  // Ears / wings
+  p.poly([[cx - 3, base - 22], [cx - 1, base - 27], [cx + 1, base - 22]], ICE_PAL[2]);
+  p.poly([[cx + 1, base - 22], [cx + 3, base - 27], [cx + 5, base - 22]], ICE_PAL[3]);
+  p.set(cx, base - 16, 0xffffff);
+  p.set(cx + 2 * dir, base - 21, 0xffffff);
+  p.outline();
+  p.shadow(cx + 1, base, 9, 3, 45);
+  return d;
+};
+
+export const snowyFence = (rot: 0 | 1 = 0): SpriteDef => {
+  const [p, d] = sprite(32, 32);
+  const iso = new Iso(16, 16);
+  if (rot === 1) {
+    box(p, iso, 0.44, 0.5, 0.06, 0.94, 3, 5, WOOD);
+    box(p, iso, 0.44, 0.5, 0.06, 0.94, 8, 10, WOOD);
+    for (let i = 0; i < 4; i++) {
+      const v = 0.08 + i * 0.25;
+      box(p, iso, 0.4, 0.54, v, v + 0.13, 0, 12, WOOD);
+      box(p, iso, 0.38, 0.56, v - 0.01, v + 0.14, 11, 13.5, SNOW_PAL);
+    }
+    p.outline();
+    p.shadow(14, 24, 13, 3, 50);
+    return d;
+  }
+  box(p, iso, 0.06, 0.94, 0.44, 0.5, 3, 5, WOOD);
+  box(p, iso, 0.06, 0.94, 0.44, 0.5, 8, 10, WOOD);
+  for (let i = 0; i < 4; i++) {
+    const u = 0.08 + i * 0.25;
+    box(p, iso, u, u + 0.13, 0.4, 0.54, 0, 12, WOOD);
+    box(p, iso, u - 0.01, u + 0.14, 0.38, 0.56, 11, 13.5, SNOW_PAL);
+  }
+  p.outline();
+  p.shadow(18, 24, 13, 3, 50);
+  return d;
+};
+
+export const christmasTree = (): SpriteDef => {
+  const [p, d] = sprite(42, 58);
+  const cx = 21, base = 50;
+  // Festive red tree skirt & trunk
+  p.ellipse(cx, base, 9, 3.5, FESTIVE_RED[2]);
+  p.rect(cx - 2, base - 8, 4, 8, WOOD[1]);
+  // Three lush evergreen tiers
+  const pinePal = [0x14532d, 0x166534, 0x22c55e, 0x86efac];
+  p.blob(cx, base - 14, 13, 8, pinePal, 0.15, 121);
+  p.blob(cx, base - 23, 10.5, 7.5, pinePal, 0.15, 122);
+  p.blob(cx, base - 32, 7.5, 6.5, pinePal, 0.15, 123);
+  p.blob(cx, base - 38, 4.5, 4.5, pinePal, 0.12, 124);
+  // Golden garland & colorful ornaments (red, gold, sky-blue, pink)
+  const ornaments: [number, number, number][] = [
+    [-6, -13, 0xef4444], [5, -12, 0xfef08a], [0, -16, 0x38bdf8],
+    [-5, -22, 0xfef08a], [4, -21, 0xef4444], [-1, -25, 0xf472b6],
+    [-3, -31, 0x38bdf8], [3, -30, 0xfef08a], [0, -35, 0xef4444],
+  ];
+  for (const [ox, oy, col] of ornaments) {
+    p.set(cx + ox, base + oy, col);
+    p.set(cx + ox + 1, base + oy, col);
+  }
+  // Glowing golden star topper
+  p.ellipse(cx, base - 44, 3, 3, 0xf59e0b);
+  p.set(cx, base - 44, 0xffffff);
+  p.set(cx - 1, base - 44, 0xfef08a);
+  p.set(cx + 1, base - 44, 0xfef08a);
+  p.set(cx, base - 46, 0xfef08a);
+  p.outline();
+  p.shadow(cx + 2, base + 1, 13, 4, 55);
+  return d;
+};
+
+export const reindeer = (rot: 0 | 1 = 0): SpriteDef => {
+  const [p, d] = sprite(32, 36);
+  const cx = 16, base = 28;
+  const dir = rot === 1 ? -1 : 1;
+  const deerPal = ramp(0xa16207);
+  // Legs
+  p.rect(cx - 4, base - 7, 2, 7, deerPal[1]);
+  p.rect(cx + 3, base - 7, 2, 7, deerPal[1]);
+  // Cozy body & fluffy white tail
+  p.blob(cx, base - 10, 6.5, 4.5, deerPal, 0.08, 125);
+  p.ellipse(cx - 6 * dir, base - 11, 2, 2, 0xffffff);
+  // Festive red collar with gold bell
+  p.line(cx + 3 * dir, base - 12, cx + 5 * dir, base - 9, 0xdc2626);
+  p.set(cx + 4 * dir, base - 9, 0xfef08a);
+  // Head & glowing red Rudolph nose
+  const hx = cx + 5 * dir, hy = base - 16;
+  p.blob(hx, hy, 4, 3.8, deerPal, 0.08, 126);
+  p.set(hx + 3 * dir, hy, 0xef4444);
+  p.set(hx + 1 * dir, hy - 1, OUTLINE);
+  // Branching cream antlers
+  p.line(hx - 1, hy - 3, hx - 3, hy - 8, 0xfef3c7);
+  p.line(hx + 1, hy - 3, hx + 3, hy - 8, 0xfef3c7);
+  p.set(hx - 4, hy - 7, 0xfef3c7);
+  p.set(hx + 4, hy - 7, 0xfef3c7);
+  p.outline();
+  p.shadow(cx + 1, base, 9, 3, 50);
+  return d;
+};
+
+export const giftBoxes = (rot: 0 | 1 = 0): SpriteDef => {
+  const [p, d] = sprite(32, 28);
+  const iso = new Iso(16, 14);
+  if (rot === 1) {
+    // Tall crimson box with gold ribbon + smaller teal & gold boxes
+    box(p, iso, 0.16, 0.56, 0.18, 0.58, 0, 10, FESTIVE_RED);
+    box(p, iso, 0.33, 0.39, 0.17, 0.59, 0, 10.5, FESTIVE_GOLD);
+    box(p, iso, 0.48, 0.84, 0.42, 0.82, 0, 7, ramp(0x0ea5e9));
+    box(p, iso, 0.63, 0.69, 0.41, 0.83, 0, 7.5, ramp(0xfef08a));
+    p.outline();
+    p.shadow(16, 22, 11, 3.5, 50);
+    return d;
+  }
+  box(p, iso, 0.18, 0.58, 0.16, 0.56, 0, 10, FESTIVE_RED);
+  box(p, iso, 0.17, 0.59, 0.33, 0.39, 0, 10.5, FESTIVE_GOLD);
+  box(p, iso, 0.42, 0.82, 0.48, 0.84, 0, 7, FESTIVE_GREEN);
+  box(p, iso, 0.41, 0.83, 0.63, 0.69, 0, 7.5, FESTIVE_RED);
+  p.outline();
+  p.shadow(16, 22, 11, 3.5, 50);
+  return d;
+};
+
+export const candyCane = (rot: 0 | 1 = 0): SpriteDef => {
+  const [p, d] = sprite(26, 36);
+  const cx = 13, base = 28;
+  const dir = rot === 1 ? -1 : 1;
+  // Snow base
+  p.ellipse(cx, base, 5.5, 2.2, SNOW_PAL[2]);
+  // Vertical cane shaft with alternating red and white peppermint stripes
+  for (let y = 0; y < 18; y++) {
+    const col = Math.floor(y / 3) % 2 === 0 ? 0xef4444 : 0xffffff;
+    for (let dx = -1; dx <= 1; dx++) {
+      p.set(cx - 2 * dir + dx, base - 1 - y, col);
+    }
+  }
+  // Curved hook at top
+  for (let a = 0; a <= 10; a++) {
+    const rad = (a / 10) * Math.PI;
+    const hx = Math.round(cx + Math.cos(rad) * -3.5 * dir);
+    const hy = Math.round(base - 18 - Math.sin(rad) * 4);
+    const col = a % 3 === 0 ? 0xef4444 : 0xffffff;
+    p.ellipse(hx, hy, 1.5, 1.5, col);
+  }
+  // Green holly bow on the stem
+  p.set(cx - 3 * dir, base - 10, 0x22c55e);
+  p.set(cx - 1 * dir, base - 10, 0x22c55e);
+  p.outline();
+  p.shadow(cx + 1, base + 1, 6, 2, 45);
+  return d;
+};
+
+export const christmasWreath = (rot: 0 | 1 = 0): SpriteDef => {
+  const [p, d] = sprite(30, 38);
+  const cx = 15, base = 30;
+  const offX = rot === 1 ? -1 : 1;
+  // Wooden stand post
+  p.rect(cx - 1, base - 22, 3, 22, WOOD[1]);
+  p.ellipse(cx, base, 6, 2.5, WOOD[2]);
+  // Lush holly wreath ring
+  p.blob(cx + offX, base - 17, 7.5, 7.5, FESTIVE_GREEN, 0.15, 127);
+  p.ellipse(cx + offX, base - 17, 3, 3, 0x00000000);
+  // Clear center hole
+  for (let dy = -2; dy <= 2; dy++) {
+    for (let dx = -2; dx <= 2; dx++) {
+      if (dx * dx + dy * dy <= 4) p.set(cx + offX + dx, base - 17 + dy, 0);
+    }
+  }
+  // Crimson ribbon bow at bottom & holly berries
+  p.ellipse(cx + offX, base - 11, 2.5, 1.8, 0xef4444);
+  p.line(cx + offX - 1, base - 10, cx + offX - 2, base - 7, 0xdc2626);
+  p.line(cx + offX + 1, base - 10, cx + offX + 2, base - 7, 0xdc2626);
+  p.set(cx + offX - 4, base - 18, 0xef4444);
+  p.set(cx + offX + 4, base - 19, 0xef4444);
+  p.set(cx + offX, base - 22, 0xfef08a);
+  p.outline();
+  p.shadow(cx + 1, base + 1, 8, 2.5, 45);
+  return d;
+};
+
+export const santasSleigh = (rot: 0 | 1 = 0): SpriteDef => {
+  const w = rot === 1 ? 1 : 2, d = rot === 1 ? 2 : 1;
+  const pad = 8;
+  const W = (w + d) * 16 + pad * 2;
+  const Hc = (w + d) * 8 + 32;
+  const p = new Pix(W, Hc);
+  const ox = pad + d * 16;
+  const oy = Hc - (w + d) * 8;
+  const iso = new Iso(ox, oy);
+  const uMax = rot === 1 ? 0.84 : 1.78;
+  const vMax = rot === 1 ? 1.78 : 0.84;
+  // Golden runners along ground
+  box(p, iso, 0.12, uMax, 0.14, 0.22, 0, 3, FESTIVE_GOLD);
+  box(p, iso, 0.12, uMax, vMax - 0.08, vMax, 0, 3, FESTIVE_GOLD);
+  // Carved crimson sleigh body with gold trim & plush cream seat
+  box(p, iso, 0.16, uMax * 0.92, 0.16, vMax * 0.92, 3, 12, FESTIVE_RED, 5);
+  box(p, iso, 0.22, uMax * 0.65, 0.22, vMax * 0.65, 11, 14, SNOW_PAL);
+  // Toy sack / gift tucked in back
+  const [gx, gy] = iso.p(0.35, 0.35, 15);
+  p.ellipse(gx, gy, 4.5, 4, FESTIVE_GREEN[2]);
+  p.set(gx, gy - 2, 0xfef08a);
+  p.outline();
+  p.shadow(ox + (w - d) * 8, oy + 16, 26, 7, 55);
+  return { pix: p, ax: ox + (w - d) * 16 };
+};
+
+export const festiveStreetlamp = (): SpriteDef => {
+  const [p, d] = sprite(28, 46);
+  const cx = 14, base = 38;
+  // Snow base & iron lamp post
+  p.ellipse(cx, base, 6, 2.5, SNOW_PAL[2]);
+  p.rect(cx - 1, base - 26, 3, 25, 0x334155);
+  // Spiraling red ribbon around post
+  for (let y = base - 22; y <= base - 6; y += 4) {
+    p.set(cx - 1, y, 0xef4444);
+    p.set(cx, y + 1, 0xef4444);
+    p.set(cx + 1, y + 2, 0xdc2626);
+  }
+  // Mini holly wreath & bow beneath lantern
+  p.ellipse(cx, base - 24, 4, 3, 0x16a34a);
+  p.set(cx, base - 22, 0xef4444);
+  // Warm golden lantern head
+  p.rect(cx - 3, base - 33, 7, 7, 0xf59e0b);
+  p.rect(cx - 2, base - 32, 5, 5, 0xfef08a);
+  p.poly([[cx - 5, base - 33], [cx, base - 37], [cx + 5, base - 33]], 0x1e293b);
+  p.set(cx, base - 36, 0xffffff);
+  p.outline();
+  p.shadow(cx + 1, base + 1, 8, 3, 50);
+  return d;
+};
+
+export const christmasStall = (rot: 0 | 1 = 0): SpriteDef => {
+  const w = rot === 1 ? 1 : 2, d = rot === 1 ? 2 : 1;
+  const pad = 8;
+  const W = (w + d) * 16 + pad * 2;
+  const Hc = (w + d) * 8 + 42;
+  const p = new Pix(W, Hc);
+  const ox = pad + d * 16;
+  const oy = Hc - (w + d) * 8;
+  const iso = new Iso(ox, oy);
+  const uMax = rot === 1 ? 0.86 : 1.82;
+  const vMax = rot === 1 ? 1.82 : 0.86;
+  // Timber market counter
+  box(p, iso, 0.14, uMax, 0.14, vMax, 0, 11, WOOD, 7);
+  // Corner posts supporting roof
+  box(p, iso, 0.16, 0.26, 0.16, 0.26, 11, 24, WOOD);
+  box(p, iso, uMax - 0.1, uMax, 0.16, 0.26, 11, 24, WOOD);
+  box(p, iso, 0.16, 0.26, vMax - 0.1, vMax, 11, 24, WOOD);
+  box(p, iso, uMax - 0.1, uMax, vMax - 0.1, vMax, 11, 24, WOOD);
+  // Red-and-white peppermint striped canopy with snow rim
+  box(p, iso, 0.1, uMax + 0.04, 0.1, vMax + 0.04, 24, 29, FESTIVE_RED);
+  box(p, iso, 0.14, uMax, 0.14, vMax, 28, 30, SNOW_PAL);
+  // Festive garland & warm fairy lights along the counter
+  const [mx, my] = iso.p(uMax * 0.5, vMax * 0.5, 13);
+  p.ellipse(mx - 4, my, 2.5, 2, 0xfef08a);
+  p.ellipse(mx + 4, my, 2.5, 2, 0xef4444);
+  p.ellipse(mx, my - 8, 5, 2, 0x22c55e);
+  p.set(mx - 3, my - 8, 0xfef08a);
+  p.set(mx + 3, my - 8, 0xfef08a);
+  p.outline();
+  p.shadow(ox + (w - d) * 8, oy + 16, 28, 8, 55);
+  return { pix: p, ax: ox + (w - d) * 16 };
+};
+
+export const desertTent = (rot: 0 | 1 = 0): SpriteDef => {
+  const w = rot === 1 ? 1 : 2, d = rot === 1 ? 2 : 1;
+  const pad = 8;
+  const W = (w + d) * 16 + pad * 2;
+  const Hc = (w + d) * 8 + 38;
+  const p = new Pix(W, Hc);
+  const ox = pad + d * 16;
+  const oy = Hc - (w + d) * 8;
+  const iso = new Iso(ox, oy);
+  const uMax = rot === 1 ? 0.88 : 1.84;
+  const vMax = rot === 1 ? 1.84 : 0.88;
+  const fabric = ramp(0xd97706);
+  const trim = ramp(0xb91c1c);
+  // Woven rug base
+  box(p, iso, 0.12, uMax, 0.12, vMax, 0, 2, trim);
+  // Tent walls & pitched nomad canopy
+  box(p, iso, 0.18, uMax - 0.06, 0.18, vMax - 0.06, 2, 14, fabric, 4);
+  box(p, iso, 0.28, uMax - 0.16, 0.28, vMax - 0.16, 14, 21, trim);
+  box(p, iso, 0.42, uMax - 0.3, 0.42, vMax - 0.3, 21, 25, FESTIVE_GOLD);
+  p.outline();
+  p.shadow(ox + (w - d) * 8, oy + 16, 28, 8, 55);
+  return { pix: p, ax: ox + (w - d) * 16 };
+};
+
+export const oasisFountain = (): SpriteDef => {
+  const [p, d] = sprite(36, 36);
+  const cx = 18, base = 28;
+  const iso = new Iso(cx, base - 12);
+  // Warm carved sandstone basin
+  box(p, iso, 0.12, 0.88, 0.12, 0.88, 0, 7, SANDSTONE_PAL, 6);
+  // Cool turquoise oasis water pool & central spout
+  p.ellipse(cx, base - 11, 9, 4.2, 0x38bdf8);
+  p.ellipse(cx, base - 11, 6, 2.8, 0x7dd3fc);
+  box(p, iso, 0.4, 0.6, 0.4, 0.6, 6, 16, SANDSTONE_PAL);
+  // Bubbling water crest
+  p.ellipse(cx, base - 21, 3.5, 2.2, 0xe0f2fe);
+  p.set(cx - 2, base - 18, 0xbae6fd);
+  p.set(cx + 2, base - 17, 0xbae6fd);
+  p.outline();
+  p.shadow(cx + 1, base, 13, 4, 50);
+  return d;
+};
+
+export const desertLantern = (rot: 0 | 1 = 0): SpriteDef => {
+  const [p, d] = sprite(28, 36);
+  const cx = 14, base = 28;
+  const dir = rot === 1 ? -1 : 1;
+  // Sandstone plinth & pierced brass Moroccan lantern
+  p.ellipse(cx, base, 6, 2.5, SAND_PAL[2]);
+  p.rect(cx - 2, base - 6, 5, 6, SANDSTONE_PAL[1]);
+  p.blob(cx, base - 13, 4.8, 6.5, FESTIVE_GOLD, 0.08, 131);
+  // Warm amber lattice glow
+  p.ellipse(cx, base - 13, 2.8, 4, 0xfef08a);
+  p.set(cx + dir, base - 14, 0xffffff);
+  // Pointed brass dome finial
+  p.poly([[cx - 4, base - 18], [cx, base - 23], [cx + 4, base - 18]], 0xb45309);
+  p.outline();
+  p.shadow(cx + 1, base + 1, 8, 2.5, 45);
+  return d;
+};
+
+export const beachUmbrella = (rot: 0 | 1 = 0): SpriteDef => {
+  const [p, d] = sprite(36, 44);
+  const cx = 18, base = 36;
+  const tilt = rot === 1 ? -2 : 2;
+  // Sandy base & wooden pole
+  p.ellipse(cx, base, 6, 2.2, SAND_PAL[2]);
+  p.line(cx, base, cx + tilt, base - 24, WOOD[2]);
+  p.line(cx + 1, base, cx + 1 + tilt, base - 24, WOOD[1]);
+  // Striped coral-and-cream umbrella canopy
+  const topX = cx + tilt, topY = base - 24;
+  p.ellipse(topX, topY, 13, 6.5, 0xf43f5e);
+  p.poly([[topX, topY - 6], [topX - 6, topY + 5], [topX - 1, topY + 6]], 0xfffbeb);
+  p.poly([[topX, topY - 6], [topX + 2, topY + 6], [topX + 7, topY + 5]], 0xfffbeb);
+  p.set(topX, topY - 7, WOOD[3]);
+  p.outline();
+  p.shadow(cx + 2, base + 1, 13, 4, 50);
+  return d;
+};
+
+export const beachChair = (rot: 0 | 1 = 0): SpriteDef => {
+  const [p, d] = sprite(32, 32);
+  const iso = new Iso(16, 16);
+  const canvasPal = ramp(0x38bdf8);
+  if (rot === 1) {
+    box(p, iso, 0.24, 0.76, 0.18, 0.84, 2, 5, WOOD);
+    box(p, iso, 0.28, 0.72, 0.22, 0.78, 5, 7, canvasPal);
+    box(p, iso, 0.26, 0.36, 0.2, 0.78, 7, 15, canvasPal);
+    p.outline();
+    p.shadow(15, 24, 12, 4, 50);
+    return d;
+  }
+  box(p, iso, 0.18, 0.84, 0.24, 0.76, 2, 5, WOOD);
+  box(p, iso, 0.22, 0.78, 0.28, 0.72, 5, 7, canvasPal);
+  box(p, iso, 0.2, 0.78, 0.26, 0.36, 7, 15, canvasPal);
+  p.outline();
+  p.shadow(17, 24, 12, 4, 50);
+  return d;
+};
+
+export const sandcastle = (rot: 0 | 1 = 0): SpriteDef => {
+  const [p, d] = sprite(32, 32);
+  const cx = 16, base = 25;
+  const dir = rot === 1 ? -1 : 1;
+  const iso = new Iso(cx, base - 10);
+  // Outer sand walls & corner turrets
+  box(p, iso, 0.18, 0.82, 0.18, 0.82, 0, 7, SAND_PAL, 3);
+  box(p, iso, 0.14, 0.38, 0.14, 0.38, 0, 11, SAND_PAL);
+  box(p, iso, 0.62, 0.86, 0.62, 0.86, 0, 11, SAND_PAL);
+  // Central keep tower + red seashell flag
+  box(p, iso, 0.34, 0.66, 0.34, 0.66, 6, 15, SAND_PAL);
+  p.line(cx, base - 20, cx, base - 26, WOOD[1]);
+  p.poly([[cx, base - 26], [cx + 4 * dir, base - 24], [cx, base - 22]], 0xf43f5e);
+  p.outline();
+  p.shadow(cx + 1, base, 11, 3.5, 45);
+  return d;
+};
+
+export const beachTowel = (rot: 0 | 1 = 0): SpriteDef => {
+  const [p, d] = sprite(32, 16);
+  const iso = new Iso(16, 0);
+  const stripeA = ramp(0xfb7185);
+  const stripeB = ramp(0xfef08a);
+  if (rot === 1) {
+    box(p, iso, 0.24, 0.76, 0.14, 0.86, 0, 1, stripeA);
+    box(p, iso, 0.38, 0.62, 0.14, 0.86, 0, 1.2, stripeB);
+  } else {
+    box(p, iso, 0.14, 0.86, 0.24, 0.76, 0, 1, stripeA);
+    box(p, iso, 0.14, 0.86, 0.38, 0.62, 0, 1.2, stripeB);
+  }
+  p.outline();
+  return d;
+};
+
+export const seashellCluster = (): SpriteDef => {
+  const [p, d] = sprite(32, 16);
+  // Sandy ground accents + coral starfish, pink conch & pearl scallop
+  p.ellipse(12, 8, 3, 2, 0xfda4af);
+  p.set(12, 7, 0xfff1f2);
+  p.ellipse(19, 7, 2.5, 1.8, 0xfef08a);
+  p.ellipse(16, 10, 2.2, 1.5, 0xf97316);
+  p.set(15, 10, 0xfb923c);
+  p.set(17, 10, 0xfb923c);
+  p.outline();
+  return d;
+};
+
+export const picnicUmbrella = (rot: 0 | 1 = 0): SpriteDef => {
+  const [p, d] = sprite(36, 44);
+  const cx = 18, base = 35;
+  const iso = new Iso(cx, base - 10);
+  // Round wooden picnic table & stool base
+  box(p, iso, 0.38, 0.62, 0.38, 0.62, 0, 8, WOOD);
+  p.ellipse(cx, base - 10, 9, 4.2, WOOD[3]);
+  // Refreshing lemonade glasses on table
+  const dir = rot === 1 ? -1 : 1;
+  p.set(cx - 3 * dir, base - 11, 0xfef08a);
+  p.set(cx + 3 * dir, base - 10, 0x38bdf8);
+  // Center umbrella pole & striped summer canopy
+  p.rect(cx - 1, base - 26, 2, 16, WOOD[1]);
+  p.ellipse(cx, base - 26, 13, 6, 0x0ea5e9);
+  p.poly([[cx, base - 31], [cx - 6, base - 21], [cx - 1, base - 20]], 0xffffff);
+  p.poly([[cx, base - 31], [cx + 1, base - 20], [cx + 6, base - 21]], 0xffffff);
+  p.outline();
+  p.shadow(cx + 1, base, 13, 4, 50);
+  return d;
+};
+
 export { GREEN, lighten, OUTLINE };
