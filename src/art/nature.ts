@@ -534,4 +534,174 @@ export const everdreamTree = (): SpriteDef => {
   return d;
 };
 
+const CACTUS_GREEN = [0x1b5e3a, 0x28804f, 0x3ba368, 0x6fd492];
+const SANDSTONE = [0x8c4d2b, 0xb86b3d, 0xd98c54, 0xf2b880];
+const PALM_WOOD = [0x5c3c24, 0x7d5434, 0x9e6e46, 0xc28e60];
+
+export const cactusSmall = (): SpriteDef => {
+  const [p, d] = sprite(28, 34);
+  const cx = 14, base = gc(34);
+  // Warm sandy base mound
+  p.ellipse(cx, base - 1, 6, 2.5, SANDSTONE[2]);
+  // Ribbed single cactus column
+  p.blob(cx, base - 10, 4.5, 9, CACTUS_GREEN, 0.08, 81);
+  for (let y = base - 17; y <= base - 3; y += 2) {
+    p.set(cx - 2, y, CACTUS_GREEN[3]);
+    p.set(cx + 2, y, CACTUS_GREEN[0]);
+  }
+  // Tiny golden crown bud
+  p.set(cx, base - 19, 0xfef08a);
+  p.set(cx - 1, base - 18, 0xf472b6);
+  p.outline();
+  p.shadow(cx + 1, base + 1, 7, 2.5);
+  return d;
+};
+
+export const cactusTall = (rot: 0 | 1 = 0): SpriteDef => {
+  const [p, d] = sprite(36, 48);
+  const cx = 18, base = gc(48);
+  const dir = rot === 1 ? -1 : 1;
+  p.ellipse(cx, base - 1, 7, 2.5, SANDSTONE[2]);
+  // Central trunk
+  p.blob(cx, base - 16, 4.8, 15, CACTUS_GREEN, 0.06, 82);
+  // Left & right saguaro arms at asymmetric heights
+  const arm1X = cx - 7 * dir;
+  const arm2X = cx + 7 * dir;
+  p.blob(arm1X, base - 17, 3.2, 6, CACTUS_GREEN, 0.06, 83);
+  p.rect(Math.min(cx, arm1X), base - 13, 7, 3, CACTUS_GREEN[2]);
+  p.blob(arm2X, base - 21, 3.2, 6.5, CACTUS_GREEN, 0.06, 84);
+  p.rect(Math.min(cx, arm2X), base - 17, 7, 3, CACTUS_GREEN[1]);
+  for (let y = base - 28; y <= base - 4; y += 3) {
+    p.set(cx - 1, y, CACTUS_GREEN[3]);
+    p.set(cx + 2, y, CACTUS_GREEN[0]);
+  }
+  p.outline();
+  p.shadow(cx + 2, base + 1, 10, 3);
+  return d;
+};
+
+export const cactusFlower = (): SpriteDef => {
+  const [p, d] = sprite(30, 34);
+  const cx = 15, base = gc(34);
+  p.ellipse(cx, base - 1, 6.5, 2.5, SANDSTONE[2]);
+  // Barrel cactus body
+  p.blob(cx, base - 8, 6.5, 7, CACTUS_GREEN, 0.1, 85);
+  for (let dx = -4; dx <= 4; dx += 2) {
+    for (let y = base - 13; y <= base - 4; y += 2) {
+      p.set(cx + dx, y, dx < 0 ? CACTUS_GREEN[3] : CACTUS_GREEN[1]);
+    }
+  }
+  // Vibrant blossoms on crown
+  p.ellipse(cx - 2, base - 15, 3, 2, 0xf43f5e);
+  p.ellipse(cx + 2, base - 14, 3, 2, 0xfb7185);
+  p.set(cx - 2, base - 15, 0xfef08a);
+  p.set(cx + 2, base - 14, 0xfef08a);
+  p.outline();
+  p.shadow(cx + 1, base + 1, 8, 3);
+  return d;
+};
+
+export const desertRock = (rot: 0 | 1 = 0): SpriteDef => {
+  const [p, d] = sprite(36, 32);
+  const cx = 18, base = gc(32);
+  const dir = rot === 1 ? -1 : 1;
+  // Layered warm sandstone mesa formation
+  p.blob(cx - 3 * dir, base - 8, 9, 7.5, SANDSTONE, 0.15, 86);
+  p.blob(cx + 5 * dir, base - 5, 7, 5.5, SANDSTONE, 0.15, 87);
+  // Horizontal sedimentary strata lines
+  for (let x = cx - 10; x <= cx + 10; x++) {
+    if (p.getc(x, base - 9)) p.set(x, base - 9, SANDSTONE[0]);
+    if (p.getc(x, base - 5)) p.set(x, base - 5, SANDSTONE[3]);
+  }
+  p.outline();
+  p.shadow(cx + 1, base + 1, 12, 3);
+  return d;
+};
+
+export const desertPalm = (): SpriteDef => {
+  const [p, d] = sprite(48, 62);
+  const cx = 24, base = gc(62);
+  // Gently curving oasis palm trunk with rings
+  for (let y = 0; y < 28; y++) {
+    const t = y / 27;
+    const xOff = Math.round(Math.sin(t * Math.PI * 0.85) * 3);
+    const w = Math.max(2, Math.round(3.5 - t * 1.3));
+    for (let dx = -w; dx <= w; dx++) {
+      const c = y % 4 === 0 ? PALM_WOOD[0] : dx < 0 ? PALM_WOOD[3] : dx === 0 ? PALM_WOOD[2] : PALM_WOOD[1];
+      p.set(cx + xOff + dx, base - y, c);
+    }
+  }
+  const topX = cx + 2, topY = base - 29;
+  const frondPal = [0x1e6b3a, 0x2e8f4e, 0x4cb566, 0x8ae096];
+  // Fanning palm fronds
+  for (const [fx, fy, rx, ry, s] of [
+    [-11, -3, 10, 4.5, 91],
+    [11, -3, 10, 4.5, 92],
+    [-8, -8, 9, 4, 93],
+    [8, -8, 9, 4, 94],
+    [0, -10, 8, 4.5, 95],
+    [-6, 2, 7, 3.5, 96],
+    [6, 2, 7, 3.5, 97],
+  ] as const) {
+    p.blob(topX + fx, topY + fy, rx, ry, frondPal, 0.2, s);
+  }
+  // Golden dates cluster under crown
+  p.set(topX - 2, topY + 2, 0xf59e0b);
+  p.set(topX + 2, topY + 2, 0xd97706);
+  p.outline();
+  p.shadow(cx + 2, base + 1, 14, 4);
+  return d;
+};
+
+export const tropicalPlant = (): SpriteDef => {
+  const [p, d] = sprite(34, 34);
+  const cx = 17, base = gc(34);
+  const trop = [0x146c43, 0x1ea362, 0x38cf82, 0x7ef2b2];
+  p.blob(cx - 5, base - 7, 7, 5.5, trop, 0.2, 101);
+  p.blob(cx + 5, base - 7, 7, 5.5, trop, 0.2, 102);
+  p.blob(cx, base - 11, 7.5, 6.5, trop, 0.2, 103);
+  // Bright hibiscus & bird-of-paradise blooms
+  p.ellipse(cx - 4, base - 11, 2.8, 2.5, 0xf43f5e);
+  p.set(cx - 4, base - 11, 0xfef08a);
+  p.ellipse(cx + 4, base - 9, 2.6, 2.2, 0xf97316);
+  p.set(cx + 4, base - 9, 0xfef08a);
+  p.set(cx, base - 15, 0xec4899);
+  p.outline();
+  p.shadow(cx + 1, base + 1, 11, 3);
+  return d;
+};
+
+export const coconutTree = (): SpriteDef => {
+  const [p, d] = sprite(48, 62);
+  const cx = 24, base = gc(62);
+  // Coastal leaning trunk
+  for (let y = 0; y < 29; y++) {
+    const t = y / 28;
+    const xOff = Math.round(Math.sin(t * Math.PI * 0.75) * -4);
+    const w = Math.max(2, Math.round(3.5 - t * 1.4));
+    for (let dx = -w; dx <= w; dx++) {
+      const c = y % 4 === 0 ? PALM_WOOD[0] : dx < 0 ? PALM_WOOD[3] : PALM_WOOD[2];
+      p.set(cx + xOff + dx, base - y, c);
+    }
+  }
+  const topX = cx - 3, topY = base - 30;
+  const palm = [0x22783c, 0x36a152, 0x58c96c, 0x98eb9e];
+  for (const [fx, fy, rx, ry, s] of [
+    [-11, -2, 10, 4.5, 104],
+    [11, -2, 10, 4.5, 105],
+    [-7, -8, 9, 4, 106],
+    [7, -8, 9, 4, 107],
+    [0, -10, 8, 4, 108],
+  ] as const) {
+    p.blob(topX + fx, topY + fy, rx, ry, palm, 0.2, s);
+  }
+  // Three plump brown coconuts under the fronds
+  p.ellipse(topX - 2, topY + 2, 2.2, 2.2, 0x5c3418);
+  p.ellipse(topX + 2, topY + 2, 2.2, 2.2, 0x784421);
+  p.ellipse(topX, topY + 3, 2.2, 2.2, 0x472610);
+  p.outline();
+  p.shadow(cx + 1, base + 1, 14, 4);
+  return d;
+};
+
 export { darken, lighten };

@@ -20,15 +20,20 @@ This architecture guarantees:
   - `shadow`: Soft translucent ground shadow rendered underneath sprites.
 - **`Iso` Projector**: Converts footprint-local `(u, v, z)` coordinates into pixel coordinates `(ox + (u - v) * 16, oy + (u + v) * 8 - z)`.
 
-### 2. `island.ts` — Floating Island & Basalt Cliff Generator
-- Renders all **10 playable stages** (`8×8` Little Meadow through `36×36` Everdream Paradise) and **10 biome palettes** across 3 water/hotspring animation frames (`island:<stage>:<biome>:<0..2>`), generated lazily per stage/biome via `ensureIslandTextures`.
-- Synthesizes the tapered underside of hexagonal basalt columns using exact per-column floor scanning (`colFloorY[x]`) so every cliff skirt connects seamlessly under grass, snow, ice, autumn soil, basalt stone, sand, hotspring, and starstone terrain.
-- Keeps existing tile `(gx, gy)` coordinates anchored at `(0, 0)` across every expansion (`1 -> 10`).
+### 2. `island.ts` — Floating Island, Basalt Cliff & Custom Terrain Generator
+- Renders all **10 playable stages** (`8×8` Little Meadow through `36×36` Everdream Paradise) with a **unified green meadow base** across all stages by default (`island:<stage>:meadow:<0..2>`), generated lazily per stage via `ensureIslandTextures` (with optional visual biome override support in Settings).
+- Synthesizes the tapered underside of hexagonal basalt columns using exact per-column floor scanning (`colFloorY[x]`) so every cliff skirt connects seamlessly.
+- **Neighbor-Aware Procedural Terrain Patches (`buildCustomTerrainPatch`)**: Dynamically generates `32×16` isometric snow and sand tile textures with 4-bit cardinal neighbor awareness (`sameMask` and `otherMask`). Connected tiles form seamless snowfields and desert patches; outer edges show soft scalloped borders with subtle meadow grass blades peeking through; snow and sand borders interlock warmly with zero black or purple seams.
 
 ### 3. `nature.ts`, `decor.ts`, & `buildings.ts` — World Catalog Assets
-- **84 Placeable Shop Items + 3 Natural Scenery Types** across `nature`, `furniture`, `lighting`, `paths`, `buildings`, and `seasonal`:
-  - **Nature (`nature.ts`)**: `tree_big`, `oak`, `pine`, `birch`, `willow`, `cherry`, `cloud_tree`, `snow_pine`, `autumn_maple`, `star_willow`, `everdream_tree`, `crystal_cluster`, `ice_crystal`, `basalt_spire`, `bush`, `mist_fern`, `ember_fern`, `mushrooms`, `glow_shrooms`, `flower_bed`, `rock`, `stones`, `log`, `reeds`, `wildflowers`.
-  - **Furniture, Lighting, Paths & Seasonal (`decor.ts`)**: Dedicated `rot: 0 | 1` directional sprites (`bench`, `stone_bench`, `picnic_table`, `hammock`, `hot_tub`, `bridge`, `stepping_stones`, `wood_deck`, `fence`, `sign`, `birdhouse`, `gazebo`, `hot_cocoa`, `moss_statue`, `stargazer`, `harvest_cart`, `snow_fort`, `dreamcatcher`, etc.), `campfire` (+ centered 2-frame `campfireFlame`), biome lanterns, and paths (`path`, `petal_path`, `lily_stepping`, `mosaic_path`, `frost_paving`, `amber_cobble`, `star_paving`, `zen_garden`).
+- **116 Placeable Shop Items + 3 Natural Scenery Types** across `nature`, `furniture`, `lighting`, `paths`, `buildings`, `terrain`, and `seasonal`:
+  - **Terrain & Landscaping (`island.ts`)**: `grass_patch`, `snow_patch`, `sand_patch`.
+  - **Winter Collection (`decor.ts` & `nature.ts`)**: `snowman`, `snow_pine`, `ice_crystal`, `frozen_pond`, `winter_lantern`, `snow_bench` (rot 0/1), `ice_sculpture`, `snowy_fence` (rot 0/1).
+  - **Christmas Collection (`decor.ts`)**: `christmas_tree`, `reindeer`, `gift_boxes`, `candy_cane`, `christmas_wreath`, `santas_sleigh` (rot 0/1), `festive_streetlamp`, `christmas_stall` (rot 0/1).
+  - **Desert Collection (`decor.ts` & `nature.ts`)**: `cactus_small`, `cactus_tall`, `cactus_flower`, `desert_rock`, `desert_palm`, `desert_tent`, `oasis_fountain`, `desert_lantern`.
+  - **Beach & Summer Collection (`decor.ts` & `nature.ts`)**: `beach_umbrella`, `beach_chair` (rot 0/1), `sandcastle`, `beach_towel` (rot 0/1), `seashell_cluster`, `tropical_plant`, `coconut_tree`, `picnic_umbrella` (rot 0/1).
+  - **Classic Nature (`nature.ts`)**: `tree_big`, `oak`, `pine`, `birch`, `willow`, `cherry`, `cloud_tree`, `autumn_maple`, `star_willow`, `everdream_tree`, `crystal_cluster`, `basalt_spire`, `bush`, `mist_fern`, `ember_fern`, `mushrooms`, `glow_shrooms`, `flower_bed`, `rock`, `stones`, `log`, `reeds`, `wildflowers`.
+  - **Classic Furniture, Lighting, Paths & Seasonal (`decor.ts`)**: Dedicated `rot: 0 | 1` directional sprites (`bench`, `stone_bench`, `picnic_table`, `hammock`, `hot_tub`, `bridge`, `stepping_stones`, `wood_deck`, `fence`, `sign`, `birdhouse`, `gazebo`, `hot_cocoa`, `moss_statue`, `stargazer`, `harvest_cart`, `snow_fort`, `dreamcatcher`, etc.), `campfire` (+ centered 2-frame `campfireFlame`), biome lanterns, and paths (`path`, `petal_path`, `lily_stepping`, `mosaic_path`, `frost_paving`, `amber_cobble`, `star_paving`, `zen_garden`).
   - **Isometric Buildings (`buildings.ts`)**: 14 multi-tile buildings (`cottage`, `shed`, `greenhouse`, `shelter`, `workshop`, `windmill`, `observatory`, `teahouse`, `sanctuary_bell`, `ski_lodge`, `alchemy_hut`, `bathhouse`, `planetarium`, `dream_pavilion`) each rendered cleanly in both `rot: 0` and `rot: 1`.
 
 ### 4. `plants.ts` — 5-Stage Gardening Sprites

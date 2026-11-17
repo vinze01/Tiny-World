@@ -1,6 +1,8 @@
 /** Shared game-state types. Everything in GameState must be JSON-serialisable. */
 
-export type Category = 'nature' | 'furniture' | 'lighting' | 'paths' | 'buildings' | 'seasonal';
+export type Category = 'terrain' | 'nature' | 'furniture' | 'lighting' | 'paths' | 'buildings' | 'seasonal';
+export type CustomTerrainKind = 'snow' | 'sand';
+export type SeasonalTheme = 'winter' | 'christmas' | 'desert' | 'summer' | 'other';
 export type Layer = 'ground' | 'object';
 export type PlaceOn = 'land' | 'water' | 'any';
 export type Terrain =
@@ -100,6 +102,10 @@ export interface ItemDef {
   protected?: boolean;
   /** optional biome theme tag */
   biome?: BiomeId;
+  /** seasonal / biome subgroup for Shop filtering */
+  seasonGroup?: SeasonalTheme;
+  /** terrain paint target when category === 'terrain' */
+  terrainPaint?: 'grass' | CustomTerrainKind;
   /** hint used by creature AI to find points of interest */
   tags?: string[];
 }
@@ -246,6 +252,8 @@ export interface GameState {
   tokens: number;
   stage: number;
   inventory: Record<string, number>;
+  /** player-painted ground patches keyed by "gx,gy" */
+  customTerrain?: Record<string, CustomTerrainKind>;
   objects: PlacedObject[];
   pickups: Pickup[];
   creatures: CreatureState[];

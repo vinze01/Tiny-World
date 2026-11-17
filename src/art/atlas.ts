@@ -1,30 +1,35 @@
 import type Phaser from 'phaser';
-import { CREATURES, PLANTS, stageBiome } from '../core/catalog';
-import type { BiomeId, CreatureId, PlantId } from '../core/types';
+import { CREATURES, PLANTS } from '../core/catalog';
+import type { BiomeId, CreatureId, CustomTerrainKind, PlantId } from '../core/types';
 import {
   alchemyHut, bathhouse, cottage, dreamPavilion, greenhouse, observatory, planetarium,
   sanctuaryBell, shed, shelter, skiLodge, teahouse, windmill, workshop,
 } from './buildings';
 import { ANIM_ORDER, ANIM_RATES, FRAME, FRAME_DEFS, buildCreatureSheet, drawPipkin } from './creatures';
 import {
-  amberCobble, auroraBeacon, bench, birdhouse, bridge, campfireBase, campfireFlame, celestialLamp,
-  dreamcatcher, emberBrazier, fairyLights, fence, fireSpinners, frostPaving, gazingGlobe, gazebo,
-  hammock, harmonyFountain, harvestCart, hotCocoa, hotTub, iceLantern, lantern, lilyStepping,
-  mailbox, mosaicPath, mossStatue, nebulaOrb, path, petalPath, picnicTable, pot, sign,
-  snowFort, springPinwheel, starDial, stargazer, starPaving, steppingStones, stoneBench,
-  teaSet, torches, well, willowWispLamp, windchime, woodDeck, zenGarden,
+  amberCobble, auroraBeacon, beachChair, beachTowel, beachUmbrella, bench, birdhouse, bridge,
+   campfireBase, campfireFlame, candyCane, celestialLamp, christmasStall, christmasTree,
+  christmasWreath, desertLantern, desertTent, dreamcatcher, emberBrazier, fairyLights, fence,
+  festiveStreetlamp, fireSpinners, frostPaving, frozenPond, gazingGlobe, gazebo, giftBoxes,
+  hammock, harmonyFountain, harvestCart, hotCocoa, hotTub, iceLantern, iceSculpture, lantern,
+  lilyStepping, mailbox, mosaicPath, mossStatue, nebulaOrb, oasisFountain, path, petalPath,
+  picnicTable, picnicUmbrella, pot, reindeer, sandcastle, santasSleigh, seashellCluster, sign,
+  snowBench, snowFort, snowyFence, springPinwheel, starDial, stargazer, starPaving,
+  steppingStones, stoneBench, teaSet, torches, well, willowWispLamp, windchime, winterLantern,
+  woodDeck, zenGarden,
 } from './decor';
 import {
   angryEmote, butterfly, cloud, coin, drop, emberFx, firefly, fogWispFx, glow, heart,
   leafFx, moon, musicEmote, note, petalFx, pickupSprite, question, raindrop, shyEmote,
   snowflakeFx, sparkle, star, sun, sweatEmote, zzz,
 } from './fx';
-import { buildIsland, type IslandTex } from './island';
+import { buildCustomTerrainPatch, buildIsland, terrainPatchSprite, type IslandTex } from './island';
 import {
-  autumnMaple, basaltSpire, birch, bush, cherry, cloudTree, crystalCluster, emberFern,
-  everdreamTree, flowerBed, glowShrooms, iceCrystal, log, mistFern, mushroomRing,
-  oakSmall, pine, pumpkin, reeds, rock, snowPine, snowman, starWillow, stones, treeBig,
-  wildflowers, willow, type SpriteDef,
+  autumnMaple, basaltSpire, birch, bush, cactusFlower, cactusSmall, cactusTall, cherry,
+  cloudTree, coconutTree, crystalCluster, desertPalm, desertRock, emberFern, everdreamTree,
+  flowerBed, glowShrooms, iceCrystal, log, mistFern, mushroomRing, oakSmall, pine, pumpkin,
+  reeds, rock, snowPine, snowman, starWillow, stones, treeBig, tropicalPlant, wildflowers,
+  willow, type SpriteDef,
 } from './nature';
 import { plantSprite } from './plants';
 import { Pix, ramp, lighten } from './pix';
@@ -32,12 +37,20 @@ import { Pix, ramp, lighten } from './pix';
 export interface SpriteMeta { w: number; h: number; ax: number }
 
 export const ITEM_BUILDERS: Record<string, () => SpriteDef> = {
+  // terrain & landscaping
+  grass_patch: () => terrainPatchSprite('grass'),
+  snow_patch: () => terrainPatchSprite('snow'),
+  sand_patch: () => terrainPatchSprite('sand'),
+
   // nature
   tree_big: treeBig, oak: oakSmall, pine, birch, bush, rock, stones, log, reeds,
   mushrooms: mushroomRing, wildflowers, flower_bed: flowerBed, pumpkin, snowman,
   willow, crystal_cluster: crystalCluster, cherry, glow_shrooms: glowShrooms, cloud_tree: cloudTree,
   snow_pine: snowPine, ice_crystal: iceCrystal, autumn_maple: autumnMaple, mist_fern: mistFern,
   ember_fern: emberFern, basalt_spire: basaltSpire, star_willow: starWillow, everdream_tree: everdreamTree,
+  cactus_small: cactusSmall, cactus_tall: () => cactusTall(0), cactus_flower: cactusFlower,
+  desert_rock: () => desertRock(0), desert_palm: desertPalm, tropical_plant: tropicalPlant,
+  coconut_tree: coconutTree,
 
   // furniture
   bench, fence, sign, pot, birdhouse, mailbox, tea_set: teaSet, well, hammock,
@@ -59,7 +72,17 @@ export const ITEM_BUILDERS: Record<string, () => SpriteDef> = {
   windmill, observatory, sanctuary_bell: sanctuaryBell,
   teahouse, ski_lodge: skiLodge, alchemy_hut: alchemyHut, bathhouse, planetarium, dream_pavilion: dreamPavilion,
 
-  // seasonal
+  // seasonal (winter, christmas, desert, summer, other)
+  frozen_pond: frozenPond, winter_lantern: () => winterLantern(0), snow_bench: () => snowBench(0),
+  ice_sculpture: () => iceSculpture(0), snowy_fence: () => snowyFence(0),
+  christmas_tree: christmasTree, reindeer: () => reindeer(0), gift_boxes: () => giftBoxes(0),
+  candy_cane: () => candyCane(0), christmas_wreath: () => christmasWreath(0),
+  santas_sleigh: () => santasSleigh(0), festive_streetlamp: festiveStreetlamp,
+  christmas_stall: () => christmasStall(0),
+  desert_tent: () => desertTent(0), oasis_fountain: oasisFountain, desert_lantern: () => desertLantern(0),
+  beach_umbrella: () => beachUmbrella(0), beach_chair: () => beachChair(0),
+  sandcastle: () => sandcastle(0), beach_towel: () => beachTowel(0),
+  seashell_cluster: seashellCluster, picnic_umbrella: () => picnicUmbrella(0),
   spring_pinwheel: springPinwheel, windchime, zen_garden: zenGarden,
   snow_fort: snowFort, harvest_cart: harvestCart, fire_spinners: fireSpinners, dreamcatcher,
 };
@@ -69,6 +92,13 @@ export const ROTATED_BUILDERS: Record<string, (rot: 0 | 1) => SpriteDef> = {
   moss_statue: mossStatue, hot_tub: hotTub, star_dial: starDial, harmony_fountain: harmonyFountain,
   bridge, wood_deck: woodDeck, stone_bench: stoneBench, picnic_table: picnicTable, gazebo,
   snow_fort: snowFort, harvest_cart: harvestCart, dreamcatcher,
+  cactus_tall: cactusTall, desert_rock: desertRock,
+  winter_lantern: winterLantern, snow_bench: snowBench, ice_sculpture: iceSculpture, snowy_fence: snowyFence,
+  reindeer, gift_boxes: giftBoxes, candy_cane: candyCane, christmas_wreath: christmasWreath,
+  santas_sleigh: santasSleigh, christmas_stall: christmasStall,
+  desert_tent: desertTent, desert_lantern: desertLantern,
+  beach_umbrella: beachUmbrella, beach_chair: beachChair, sandcastle, beach_towel: beachTowel,
+  picnic_umbrella: picnicUmbrella,
   cottage, shed, greenhouse, shelter, workshop,
   windmill, observatory, sanctuary_bell: sanctuaryBell,
   teahouse, ski_lodge: skiLodge, alchemy_hut: alchemyHut, bathhouse, planetarium, dream_pavilion: dreamPavilion,
@@ -223,8 +253,37 @@ export const itemTexKey = (id: string, rot: 0 | 1 = 0): { key: string; flip: boo
 export const islandTexKey = (stage: number, biome: BiomeId, frame: number) =>
   `island:${stage}:${biome}:${frame}`;
 
-export const getIsland = (stage: number, frame: number, biome?: BiomeId | null): IslandTex => {
-  const b = biome ?? stageBiome(stage);
+export const customTerrainTexKey = (kind: CustomTerrainKind, sameMask: number, otherMask = 0) =>
+  `terrain:custom:${kind}:${sameMask & 15}:${otherMask & 15}`;
+
+const customTerrainCache = new Map<string, IslandTex>();
+
+export const getCustomTerrainTex = (kind: CustomTerrainKind, sameMask: number, otherMask = 0): IslandTex => {
+  const key = customTerrainTexKey(kind, sameMask, otherMask);
+  let t = customTerrainCache.get(key);
+  if (!t) {
+    t = buildCustomTerrainPatch(kind, sameMask & 15, otherMask & 15);
+    customTerrainCache.set(key, t);
+  }
+  return t;
+};
+
+export const ensureCustomTerrainTexture = (
+  scene: Phaser.Scene,
+  kind: CustomTerrainKind,
+  sameMask: number,
+  otherMask = 0,
+): string => {
+  const key = customTerrainTexKey(kind, sameMask, otherMask);
+  if (!scene.textures.exists(key)) {
+    const tex = getCustomTerrainTex(kind, sameMask, otherMask);
+    scene.textures.addCanvas(key, tex.pix.toCanvas());
+  }
+  return key;
+};
+
+export const getIsland = (stage: number, frame: number, biomeOverride?: BiomeId | null): IslandTex => {
+  const b: BiomeId = biomeOverride ?? 'meadow';
   const k = `${stage}:${b}:${frame}`;
   let t = islands.get(k);
   if (!t) {
@@ -235,8 +294,8 @@ export const getIsland = (stage: number, frame: number, biome?: BiomeId | null):
 };
 
 /** Lazily render & upload the 3 water-animation island frames for a specific stage & biome. */
-export const ensureIslandTextures = (scene: Phaser.Scene, stage: number, biome?: BiomeId | null) => {
-  const b = biome ?? stageBiome(stage);
+export const ensureIslandTextures = (scene: Phaser.Scene, stage: number, biomeOverride?: BiomeId | null) => {
+  const b: BiomeId = biomeOverride ?? 'meadow';
   const tex = scene.textures;
   for (const f of [0, 1, 2]) {
     const key = islandTexKey(stage, b, f);

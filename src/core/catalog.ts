@@ -38,6 +38,11 @@ const base = (o: Partial<ItemDef> & Pick<ItemDef, 'id' | 'name' | 'desc' | 'cate
 });
 
 export const ITEMS: ItemDef[] = [
+  // terrain & landscaping
+  base({ id: 'grass_patch', name: 'Green Grass', desc: 'Restore a tile to the default meadow green grass appearance.', category: 'terrain', price: 2, stage: 1, layer: 'ground', blocks: false, rotatable: false, terrainPaint: 'grass', tags: ['terrain'] }),
+  base({ id: 'snow_patch', name: 'Snow Patch', desc: 'Transform a grass tile into soft powdery snowy ground.', category: 'terrain', price: 3, stage: 1, layer: 'ground', blocks: false, rotatable: false, terrainPaint: 'snow', seasonGroup: 'winter', tags: ['terrain', 'snow'] }),
+  base({ id: 'sand_patch', name: 'Sand Patch', desc: 'Transform a grass tile into warm golden sandy ground.', category: 'terrain', price: 3, stage: 1, layer: 'ground', blocks: false, rotatable: false, terrainPaint: 'sand', seasonGroup: 'desert', tags: ['terrain', 'sand'] }),
+
   // nature
   base({ id: 'oak', name: 'Oak Tree', desc: 'A leafy friend that shades the whole meadow.', category: 'nature', price: 30, clearCost: 20, anim: 'sway', tags: ['tree'], rotatable: false }),
   base({ id: 'pine', name: 'Pine Tree', desc: 'Evergreen and cozy, with a lovely smell.', category: 'nature', price: 26, stage: 2, clearCost: 12, anim: 'sway', tags: ['tree'], rotatable: false }),
@@ -53,14 +58,22 @@ export const ITEMS: ItemDef[] = [
   base({ id: 'cherry', name: 'Cherry Blossom', desc: 'Soft pink blossoms drifting in the afternoon breeze.', category: 'nature', price: 42, stage: 4, clearCost: 20, anim: 'sway', tags: ['tree'], rotatable: false }),
   base({ id: 'glow_shrooms', name: 'Glow Mushrooms', desc: 'Bioluminescent purple caps that light up the night.', category: 'nature', price: 20, stage: 4, clearCost: 8, light: true, layer: 'ground', blocks: false, tags: ['mushroom', 'light'] }),
   base({ id: 'cloud_tree', name: 'Cloud Tree', desc: 'A mythical golden tree rooted high in the heavens.', category: 'nature', price: 65, stage: 5, clearCost: 20, anim: 'sway', tags: ['tree'], rotatable: false }),
-  base({ id: 'snow_pine', name: 'Frosted Pine', desc: 'Crisp pine needles crowned in powdery snow.', category: 'nature', price: 48, stage: 6, biome: 'frostfall', clearCost: 12, anim: 'sway', tags: ['tree'], rotatable: false }),
-  base({ id: 'ice_crystal', name: 'Glacier Spire', desc: 'Clear glacial ice reflecting pastel daylight.', category: 'nature', price: 40, stage: 6, biome: 'frostfall', clearCost: 12, light: true, tags: ['rock', 'crystal'] }),
+  base({ id: 'snow_pine', name: 'Snow-covered Pine Tree', desc: 'Evergreen pine tree with powdery snow resting on its branches.', category: 'nature', price: 28, stage: 2, biome: 'frostfall', seasonGroup: 'winter', clearCost: 12, anim: 'sway', tags: ['tree'], rotatable: false }),
+  base({ id: 'ice_crystal', name: 'Ice Crystal', desc: 'Small glowing glacial ice crystal reflecting pastel light.', category: 'nature', price: 24, stage: 2, biome: 'frostfall', seasonGroup: 'winter', clearCost: 12, light: true, tags: ['rock', 'crystal'] }),
   base({ id: 'autumn_maple', name: 'Amber Maple', desc: 'Crimson and honey leaves whispering softly.', category: 'nature', price: 56, stage: 7, biome: 'mistwood', clearCost: 20, anim: 'sway', tags: ['tree'], rotatable: false }),
   base({ id: 'mist_fern', name: 'Dewy Fern', desc: 'Soft woodland fronds shining with morning mist.', category: 'nature', price: 22, stage: 7, biome: 'mistwood', clearCost: 5, anim: 'sway', tags: ['bush'], rotatable: false }),
   base({ id: 'ember_fern', name: 'Ember Frond', desc: 'Warm copper leaves pulsing beside hot springs.', category: 'nature', price: 60, stage: 8, biome: 'emberglow', clearCost: 8, light: true, anim: 'sway', tags: ['bush', 'fire'], rotatable: false }),
   base({ id: 'basalt_spire', name: 'Warm Basalt', desc: 'Smooth volcanic rock warmed from below.', category: 'nature', price: 45, stage: 8, biome: 'emberglow', clearCost: 12, tags: ['rock'] }),
   base({ id: 'star_willow', name: 'Astral Willow', desc: 'Luminous midnight branches dusted with stardust.', category: 'nature', price: 85, stage: 9, biome: 'starlight', clearCost: 20, light: true, anim: 'sway', tags: ['tree'], rotatable: false }),
   base({ id: 'everdream_tree', name: 'Everdream Blossom', desc: 'A shimmering prismatic tree in eternal spring.', category: 'nature', price: 110, stage: 10, biome: 'everdream', clearCost: 20, light: true, anim: 'sway', tags: ['tree'], rotatable: false }),
+  // desert & tropical flora
+  base({ id: 'cactus_small', name: 'Small Cactus', desc: 'A cute single-column desert cactus with tidy ribs.', category: 'nature', price: 12, stage: 1, seasonGroup: 'desert', clearCost: 5, tags: ['flower'], rotatable: false }),
+  base({ id: 'cactus_tall', name: 'Tall Cactus', desc: 'A classic branching saguaro cactus reaching toward the sun.', category: 'nature', price: 20, stage: 2, seasonGroup: 'desert', clearCost: 8, anim: 'sway', tags: ['tree'] }),
+  base({ id: 'cactus_flower', name: 'Flowering Cactus', desc: 'A plump desert cactus crowned with vibrant coral blossoms.', category: 'nature', price: 16, stage: 1, seasonGroup: 'desert', clearCost: 5, tags: ['flower'], rotatable: false }),
+  base({ id: 'desert_rock', name: 'Desert Rock Formation', desc: 'Warm layered sandstone boulders sculpted by desert winds.', category: 'nature', price: 14, stage: 1, seasonGroup: 'desert', clearCost: 6, tags: ['rock'] }),
+  base({ id: 'desert_palm', name: 'Desert Palm Tree', desc: 'A graceful oasis date palm with fanning emerald fronds.', category: 'nature', price: 32, stage: 2, seasonGroup: 'desert', clearCost: 12, anim: 'sway', tags: ['tree'], rotatable: false }),
+  base({ id: 'tropical_plant', name: 'Tropical Plant', desc: 'Broad lush tropical leaves paired with bright hibiscus blooms.', category: 'nature', price: 16, stage: 1, seasonGroup: 'summer', clearCost: 5, anim: 'sway', tags: ['flower', 'bush'], rotatable: false }),
+  base({ id: 'coconut_tree', name: 'Coconut Tree', desc: 'A curving coastal palm heavy with sweet brown coconuts.', category: 'nature', price: 34, stage: 2, seasonGroup: 'summer', clearCost: 12, anim: 'sway', tags: ['tree'], rotatable: false }),
 
   // furniture
   base({ id: 'bench', name: 'Wooden Bench', desc: 'A place to sit and watch the clouds.', category: 'furniture', price: 20, tags: ['bench'] }),
@@ -124,15 +137,37 @@ export const ITEMS: ItemDef[] = [
   base({ id: 'dream_pavilion', name: 'Everdream Pavilion', desc: 'Pastel conservatory uniting every Pipkin in comfort.', category: 'buildings', price: 700, stage: 10, biome: 'everdream', w: 2, d: 2, light: true, tags: ['building', 'shelter'] }),
 
   // seasonal / special
-  base({ id: 'pumpkin', name: 'Autumn Pumpkin', desc: 'A plump pumpkin for harvest season.', category: 'seasonal', price: 10 }),
-  base({ id: 'snowman', name: 'Snowman', desc: 'A jolly snowman with a carrot nose.', category: 'seasonal', price: 14 }),
-  base({ id: 'spring_pinwheel', name: 'Pinwheel', desc: 'Bright pastel vanes spinning in the breeze.', category: 'seasonal', price: 12, stage: 2, anim: 'sway', rotatable: false }),
-  base({ id: 'windchime', name: 'Wind Chime', desc: 'Gentle bamboo chimes whispering in the breeze.', category: 'seasonal', price: 16, stage: 3, anim: 'sway' }),
-  base({ id: 'zen_garden', name: 'Zen Garden', desc: 'Raked sand spirals around balanced river stones.', category: 'seasonal', price: 24, stage: 4, layer: 'ground', blocks: false }),
-  base({ id: 'snow_fort', name: 'Snow Lantern Fort', desc: 'Cozy snow igloo niche lit gently from inside.', category: 'seasonal', price: 36, stage: 6, biome: 'frostfall', light: true }),
-  base({ id: 'harvest_cart', name: 'Harvest Cart', desc: 'Wooden barrow stacked high with autumn bounty.', category: 'seasonal', price: 48, stage: 7, biome: 'mistwood', w: 2, d: 1 }),
-  base({ id: 'fire_spinners', name: 'Ember Pinwheel', desc: 'Warm bronze wheel twinkling gently at twilight.', category: 'seasonal', price: 54, stage: 8, biome: 'emberglow', light: true, anim: 'sway', rotatable: false }),
-  base({ id: 'dreamcatcher', name: 'Starlight Arch', desc: 'Ribbons of stardust hanging from a silver frame.', category: 'seasonal', price: 92, stage: 10, biome: 'everdream', light: true }),
+  base({ id: 'pumpkin', name: 'Autumn Pumpkin', desc: 'A plump pumpkin for harvest season.', category: 'seasonal', price: 10, seasonGroup: 'other' }),
+  base({ id: 'snowman', name: 'Snowman', desc: 'Classic snowman with a warm wool scarf and carrot nose.', category: 'seasonal', price: 14, stage: 1, seasonGroup: 'winter', tags: ['decor'] }),
+  base({ id: 'frozen_pond', name: 'Frozen Pond', desc: 'A decorative icy pond ringed with snow-dusted stones.', category: 'seasonal', price: 28, stage: 2, seasonGroup: 'winter', layer: 'ground', blocks: false, rotatable: false, tags: ['water', 'decor'] }),
+  base({ id: 'winter_lantern', name: 'Winter Lantern', desc: 'A warm glowing lantern nestled in a drift of fresh snow.', category: 'seasonal', price: 18, stage: 1, seasonGroup: 'winter', light: true, anim: 'flicker', tags: ['light'] }),
+  base({ id: 'snow_bench', name: 'Snow Bench', desc: 'A cozy wooden garden bench dusted with light winter snow.', category: 'seasonal', price: 22, stage: 1, seasonGroup: 'winter', tags: ['bench'] }),
+  base({ id: 'ice_sculpture', name: 'Ice Sculpture', desc: 'A sparkling carved ice Pipkin statue that glints in the light.', category: 'seasonal', price: 32, stage: 2, seasonGroup: 'winter', light: true, tags: ['decor', 'crystal'] }),
+  base({ id: 'snowy_fence', name: 'Snowy Fence', desc: 'A rustic timber fence segment topped with fluffy snow caps.', category: 'seasonal', price: 10, stage: 1, seasonGroup: 'winter' }),
+  base({ id: 'christmas_tree', name: 'Christmas Tree', desc: 'A festive evergreen tree decked with colorful ornaments and a glowing star.', category: 'seasonal', price: 42, stage: 1, seasonGroup: 'christmas', light: true, anim: 'flicker', rotatable: false, tags: ['tree', 'light', 'decor'] }),
+  base({ id: 'reindeer', name: 'Reindeer', desc: 'A cute pixel-art reindeer figure wearing a festive red collar.', category: 'seasonal', price: 28, stage: 2, seasonGroup: 'christmas', anim: 'sway', tags: ['decor'] }),
+  base({ id: 'gift_boxes', name: 'Gift Boxes', desc: 'Cheerful wrapped presents tied with bright satin ribbons.', category: 'seasonal', price: 16, stage: 1, seasonGroup: 'christmas', tags: ['decor'] }),
+  base({ id: 'candy_cane', name: 'Candy Cane', desc: 'An oversized peppermint-striped decorative candy cane.', category: 'seasonal', price: 12, stage: 1, seasonGroup: 'christmas', tags: ['decor'] }),
+  base({ id: 'christmas_wreath', name: 'Christmas Wreath', desc: 'A holly-and-berry wreath with a crimson bow on a timber stand.', category: 'seasonal', price: 18, stage: 1, seasonGroup: 'christmas', tags: ['decor'] }),
+  base({ id: 'santas_sleigh', name: "Santa's Sleigh", desc: 'A carved crimson sleigh with golden runners ready for winter skies.', category: 'seasonal', price: 54, stage: 3, seasonGroup: 'christmas', w: 2, d: 1, tags: ['bench', 'decor'] }),
+  base({ id: 'festive_streetlamp', name: 'Festive Streetlamp', desc: 'A cast-iron lamp post dressed with ribbons, holly, and warm lights.', category: 'seasonal', price: 26, stage: 2, seasonGroup: 'christmas', light: true, anim: 'flicker', rotatable: false, tags: ['light'] }),
+  base({ id: 'christmas_stall', name: 'Christmas Market Stall', desc: 'A cozy miniature festive stall serving spiced treats beneath fairy lights.', category: 'seasonal', price: 64, stage: 3, seasonGroup: 'christmas', w: 2, d: 1, light: true, anim: 'smoke', tags: ['building', 'light', 'decor'] }),
+  base({ id: 'desert_tent', name: 'Desert Tent', desc: 'A shaded nomad pavilion woven with warm terracotta and gold patterns.', category: 'seasonal', price: 48, stage: 2, seasonGroup: 'desert', w: 2, d: 1, tags: ['shelter', 'bench'] }),
+  base({ id: 'oasis_fountain', name: 'Oasis Fountain', desc: 'A carved sandstone basin bubbling with cool turquoise oasis water.', category: 'seasonal', price: 38, stage: 2, seasonGroup: 'desert', rotatable: false, tags: ['water', 'decor'] }),
+  base({ id: 'desert_lantern', name: 'Desert Lantern', desc: 'A pierced brass lantern casting warm amber light across sandy paths.', category: 'seasonal', price: 18, stage: 1, seasonGroup: 'desert', light: true, anim: 'flicker', tags: ['light'] }),
+  base({ id: 'beach_umbrella', name: 'Beach Umbrella', desc: 'A cheerful coral-and-cream striped umbrella for sunny afternoons.', category: 'seasonal', price: 22, stage: 1, seasonGroup: 'summer', tags: ['decor'] }),
+  base({ id: 'beach_chair', name: 'Beach Chair', desc: 'A relaxing striped canvas lounge chair made for cloud-watching.', category: 'seasonal', price: 18, stage: 1, seasonGroup: 'summer', tags: ['bench'] }),
+  base({ id: 'sandcastle', name: 'Sandcastle', desc: 'A sculpted golden sandcastle complete with tiny towers and a shell flag.', category: 'seasonal', price: 14, stage: 1, seasonGroup: 'summer', tags: ['decor'] }),
+  base({ id: 'beach_towel', name: 'Beach Towel', desc: 'A bright striped sun towel spread neatly on the warm ground.', category: 'seasonal', price: 10, stage: 1, seasonGroup: 'summer', layer: 'ground', blocks: false, tags: ['decor'] }),
+  base({ id: 'seashell_cluster', name: 'Seashell Cluster', desc: 'Pastel conch shells, scallops, and a coral starfish resting together.', category: 'seasonal', price: 8, stage: 1, seasonGroup: 'summer', layer: 'ground', blocks: false, rotatable: false, tags: ['decor'] }),
+  base({ id: 'picnic_umbrella', name: 'Picnic Umbrella', desc: 'An outdoor umbrella shading a round wooden table with cool drinks.', category: 'seasonal', price: 30, stage: 2, seasonGroup: 'summer', tags: ['bench', 'decor'] }),
+  base({ id: 'spring_pinwheel', name: 'Pinwheel', desc: 'Bright pastel vanes spinning in the breeze.', category: 'seasonal', price: 12, stage: 2, seasonGroup: 'other', anim: 'sway', rotatable: false }),
+  base({ id: 'windchime', name: 'Wind Chime', desc: 'Gentle bamboo chimes whispering in the breeze.', category: 'seasonal', price: 16, stage: 3, seasonGroup: 'other', anim: 'sway' }),
+  base({ id: 'zen_garden', name: 'Zen Garden', desc: 'Raked sand spirals around balanced river stones.', category: 'seasonal', price: 24, stage: 4, seasonGroup: 'desert', layer: 'ground', blocks: false }),
+  base({ id: 'snow_fort', name: 'Snow Lantern Fort', desc: 'Cozy snow igloo niche lit gently from inside.', category: 'seasonal', price: 36, stage: 3, biome: 'frostfall', seasonGroup: 'winter', light: true }),
+  base({ id: 'harvest_cart', name: 'Harvest Cart', desc: 'Wooden barrow stacked high with autumn bounty.', category: 'seasonal', price: 48, stage: 4, biome: 'mistwood', seasonGroup: 'other', w: 2, d: 1 }),
+  base({ id: 'fire_spinners', name: 'Ember Pinwheel', desc: 'Warm bronze wheel twinkling gently at twilight.', category: 'seasonal', price: 54, stage: 5, biome: 'emberglow', seasonGroup: 'other', light: true, anim: 'sway', rotatable: false }),
+  base({ id: 'dreamcatcher', name: 'Starlight Arch', desc: 'Ribbons of stardust hanging from a silver frame.', category: 'seasonal', price: 92, stage: 6, biome: 'everdream', seasonGroup: 'other', light: true }),
 
   // scenery that only exists from the start (never sold)
   base({ id: 'tree_big', name: 'Great Old Tree', desc: 'The big ancient tree rooted at the heart of the island.', category: 'nature', price: 0, scenery: true, protected: true, anim: 'sway', tags: ['tree'], rotatable: false }),
@@ -143,6 +178,7 @@ export const ITEMS: ItemDef[] = [
 export const ITEM_BY_ID = Object.fromEntries(ITEMS.map((i) => [i.id, i])) as Record<string, ItemDef>;
 export const SHOP_ITEMS = ITEMS.filter((i) => !i.scenery);
 export const CATEGORIES: { id: Category; label: string }[] = [
+  { id: 'terrain', label: 'Terrain & Landscaping' },
   { id: 'nature', label: 'Nature' },
   { id: 'furniture', label: 'Furniture' },
   { id: 'lighting', label: 'Lighting' },
@@ -167,6 +203,30 @@ export const obstacleClearCost = (typeId: string): number => {
   if (def.tags?.includes('tree')) return 12;
   if (def.tags?.includes('rock')) return 8;
   return 5;
+};
+
+const SCENERY_CLEAR_REWARDS: Partial<
+  Record<string, { kind: 'decor'; id: string } | { kind: 'seed'; id: PlantId }>
+> = {
+  rock: { kind: 'decor', id: 'stones' },
+  wildflowers: { kind: 'seed', id: 'daisy' },
+};
+
+/** Bag item granted when clearing a locked natural obstacle, or null if none / protected. */
+export const obstacleClearReward = (typeId: string): { key: string; label: string } | null => {
+  const def = ITEM_BY_ID[typeId];
+  if (!def || def.protected) return null;
+  if (!def.scenery) {
+    return { key: decorKey(def.id), label: def.name };
+  }
+  const mapped = SCENERY_CLEAR_REWARDS[typeId];
+  if (!mapped) return null;
+  if (mapped.kind === 'decor') {
+    const rewardDef = ITEM_BY_ID[mapped.id];
+    return { key: decorKey(mapped.id), label: rewardDef?.name ?? mapped.id };
+  }
+  const plant = PLANTS.find((p) => p.id === mapped.id);
+  return { key: seedKey(mapped.id), label: `${plant?.name ?? mapped.id} Seed` };
 };
 
 // ---------------------------------------------------------------- creatures
@@ -217,11 +277,11 @@ export const STAGES: StageDef[] = [
   { id: 3, name: 'Crystal Pond', biome: 'crystal', blurb: 'Expands to 16×16 with shimmering waterways and riverbanks.', playable: true, cost: 320, needDecor: 8, needHarvests: 6, gridW: 16, gridH: 16 },
   { id: 4, name: 'Moonlit Garden', biome: 'mist', blurb: 'Expands to 20×20 with twilit terraces and calm mist.', playable: true, cost: 500, needDecor: 12, needHarvests: 10, gridW: 20, gridH: 20 },
   { id: 5, name: 'Cloud Sanctuary', biome: 'sky', blurb: 'Expands to 24×24 high above the clouds with sunlit glades.', playable: true, cost: 750, needDecor: 16, needHarvests: 15, gridW: 24, gridH: 24 },
-  { id: 6, name: 'Frostfall Haven', biome: 'frostfall', blurb: 'Expands to 26×26 with snowy highlands and crystal ice pools.', playable: true, cost: 1050, needDecor: 20, needHarvests: 20, gridW: 26, gridH: 26 },
-  { id: 7, name: 'Mistwood Hollow', biome: 'mistwood', blurb: 'Expands to 28×28 with amber autumn clearings and mossy springs.', playable: true, cost: 1400, needDecor: 24, needHarvests: 25, gridW: 28, gridH: 28 },
-  { id: 8, name: 'Emberglow Valley', biome: 'emberglow', blurb: 'Expands to 30×30 with cozy geothermal springs and warm stone.', playable: true, cost: 1800, needDecor: 28, needHarvests: 30, gridW: 30, gridH: 30 },
-  { id: 9, name: 'Starlight Isles', biome: 'starlight', blurb: 'Expands to 32×32 with celestial starstone terraces and sky pools.', playable: true, cost: 2250, needDecor: 32, needHarvests: 36, gridW: 32, gridH: 32 },
-  { id: 10, name: 'Everdream Paradise', biome: 'everdream', blurb: 'Expands to a grand 36×36 archipelago of meadow, snow, spring, and starlight.', playable: true, cost: 2800, needDecor: 36, needHarvests: 42, gridW: 36, gridH: 36 },
+  { id: 6, name: 'Frostfall Haven', biome: 'frostfall', blurb: 'Expands to 26×26 with lush highland meadows and crystal pools.', playable: true, cost: 1050, needDecor: 20, needHarvests: 20, gridW: 26, gridH: 26 },
+  { id: 7, name: 'Mistwood Hollow', biome: 'mistwood', blurb: 'Expands to 28×28 with misty woodland glades and mossy springs.', playable: true, cost: 1400, needDecor: 24, needHarvests: 25, gridW: 28, gridH: 28 },
+  { id: 8, name: 'Emberglow Valley', biome: 'emberglow', blurb: 'Expands to 30×30 with sun-warmed meadows and tranquil pools.', playable: true, cost: 1800, needDecor: 28, needHarvests: 30, gridW: 30, gridH: 30 },
+  { id: 9, name: 'Starlight Isles', biome: 'starlight', blurb: 'Expands to 32×32 with starlit meadow terraces and mirror pools.', playable: true, cost: 2250, needDecor: 32, needHarvests: 36, gridW: 32, gridH: 32 },
+  { id: 10, name: 'Everdream Paradise', biome: 'everdream', blurb: 'Expands to a grand 36×36 floating meadow sanctuary ready for any custom biome.', playable: true, cost: 2800, needDecor: 36, needHarvests: 42, gridW: 36, gridH: 36 },
 ];
 export const MAX_PLAYABLE_STAGE = 10;
 

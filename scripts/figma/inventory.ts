@@ -159,6 +159,7 @@ export const WEATHER_SHOWCASES: WeatherShowcaseSpec[] = [
 ];
 
 export const ITEM_SOURCE_MODULE: Record<Category, string> = {
+  terrain: 'src/art/island.ts',
   nature: 'src/art/nature.ts',
   furniture: 'src/art/decor.ts',
   lighting: 'src/art/decor.ts',
@@ -176,6 +177,9 @@ export function itemCategoryFolder(category: Category): { category: AssetCategor
   }
   if (category === 'nature') {
     return { category: 'nature', dir: 'nature', subcategory: 'nature' };
+  }
+  if (category === 'terrain') {
+    return { category: 'islands', dir: 'islands/terrain', subcategory: 'terrain' };
   }
   return { category: 'decorations', dir: `decorations/${category}`, subcategory: category };
 }
@@ -293,15 +297,17 @@ export function buildPlannedInventory(): AssetRecord[] {
     }
   }
 
-  // 2. Buildings, Decorations & Nature (from catalog ITEMS + ROTATED_BUILDERS)
+  // 2. Buildings, Decorations, Terrain & Nature (from catalog ITEMS + ROTATED_BUILDERS)
   for (const item of ITEMS) {
     const dest = itemCategoryFolder(item.category);
+    const subcat = item.seasonGroup ?? dest.subcategory;
     const srcMod = itemSourceFile(item.id, item.category);
+    const extraTags = item.seasonGroup ? [item.seasonGroup] : [];
     records.push({
       id: `item:${item.id}`,
       name: item.name,
       category: dest.category,
-      subcategory: dest.subcategory,
+      subcategory: subcat,
       kind: 'sprite',
       sourceModule: srcMod,
       catalogId: item.id,
@@ -313,7 +319,7 @@ export function buildPlannedInventory(): AssetRecord[] {
       nativeHeight: 0,
       primaryFile: `${dest.dir}/${item.id}.png`,
       files: [],
-      tags: [dest.category, item.category, item.id, `stage-${item.stage}`],
+      tags: [dest.category, item.category, item.id, `stage-${item.stage}`, ...extraTags],
       status: 'pending',
     });
 
@@ -322,7 +328,7 @@ export function buildPlannedInventory(): AssetRecord[] {
         id: `item:${item.id}:rot1`,
         name: `${item.name} (Rotated)`,
         category: dest.category,
-        subcategory: dest.subcategory,
+        subcategory: subcat,
         kind: 'sprite',
         sourceModule: srcMod,
         catalogId: item.id,
@@ -334,7 +340,7 @@ export function buildPlannedInventory(): AssetRecord[] {
         nativeHeight: 0,
         primaryFile: `${dest.dir}/${item.id}-rot1.png`,
         files: [],
-        tags: [dest.category, item.category, item.id, 'rotated'],
+        tags: [dest.category, item.category, item.id, 'rotated', ...extraTags],
         status: 'pending',
       });
     }
@@ -435,6 +441,31 @@ export function buildPlannedInventory(): AssetRecord[] {
         status: 'pending',
       });
     }
+  }
+
+  // Player-placed neighbor-aware terrain transition examples (Grass↔Snow, Grass↔Sand, Snow↔Sand, Connected Fields)
+  const transitionSpecs = [
+    { id: 'snow:isolated', name: 'Snow Patch (Isolated Grass Transition)', slug: 'transition-snow-isolated', tags: ['snow', 'grass', 'transition'] },
+    { id: 'snow:connected', name: 'Snow Patch (Connected Snowfield)', slug: 'transition-snow-connected', tags: ['snow', 'connected', 'transition'] },
+    { id: 'sand:isolated', name: 'Sand Patch (Isolated Grass Transition)', slug: 'transition-sand-isolated', tags: ['sand', 'grass', 'transition'] },
+    { id: 'sand:connected', name: 'Sand Patch (Connected Desert Field)', slug: 'transition-sand-connected', tags: ['sand', 'connected', 'transition'] },
+    { id: 'snow:sand-border', name: 'Snow ↔ Sand Border Transition', slug: 'transition-snow-sand-border', tags: ['snow', 'sand', 'transition'] },
+  ] as const;
+  for (const ts of transitionSpecs) {
+    records.push({
+      id: `terrain-transition:${ts.id}`,
+      name: ts.name,
+      category: 'islands',
+      subcategory: 'terrain',
+      kind: 'terrain-tile',
+      sourceModule: 'src/art/island.ts',
+      nativeWidth: 32,
+      nativeHeight: 16,
+      primaryFile: `islands/terrain/${ts.slug}.png`,
+      files: [],
+      tags: ['terrain', ...ts.tags],
+      status: 'pending',
+    });
   }
 
   for (const st of STAGES) {

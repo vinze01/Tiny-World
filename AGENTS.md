@@ -4,12 +4,12 @@
 - `src/core/` — **Pure TypeScript game logic** (zero DOM, Vue, or Phaser imports).
   - `types.ts`: Serializable `GameState` and action/effect contracts.
   - `catalog.ts`: Definitions and economy balancing for plants, decorations, buildings, Pipkins, stages, achievements, and random events.
-  - `grid.ts`: `32×16` isometric coordinate math, terrain maps (`Stage 1`–`Stage 10`), footprint collision checks (`canPlace`), walkability grid (`walkGrid`), and BFS pathfinding (`findPath`).
+  - `grid.ts`: `32×16` isometric coordinate math, terrain maps (`Stage 1`–`Stage 10`), single/group footprint collision checks (`canPlace`, `canMoveObjects`), walkability grid (`walkGrid`), and BFS pathfinding (`findPath`).
   - `plants.ts`: Timestamp-based plant growth (`plantProgress`, `plantStage`), watering, and sprout regrowth after harvest.
   - `daycycle.ts`: Morning / Daytime / Sunset / Night sky colors and lighting interpolation.
   - `events.ts`: Weighted random world events (`rollEvent`) and bounded offline progression (`applyOffline`).
   - `creatureAI.ts`: Pipkin finite-state machine (`idle`, `wander`, `inspect`, `interact`, `rest`, `sleep`).
-  - `actions.ts`: Pure state mutators (`wake`, `collectPickup`, `interact`, `tapPond`, `buy`, `placeItem`, `moveObject`, `removeObject`, `plantSeed`, `waterPlant`, `harvestPlant`, `petCreature`, `feedCreature`, `renameCreature`, `expandIsland`, `setSettings`, `setTutorial`, `tickEvent`).
+  - `actions.ts`: Pure state mutators (`wake`, `collectPickup`, `interact`, `tapPond`, `buy`, `placeItem`, `moveObject`, `moveObjects`, `rotateObject`, `removeObject`, `plantSeed`, `waterPlant`, `harvestPlant`, `petCreature`, `feedCreature`, `renameCreature`, `expandIsland`, `setSettings`, `setTutorial`, `tickEvent`).
   - `persistence.ts`: Authoritative IndexedDB `SaveStore` using Web Locks, BroadcastChannel sync, checksums, rolling backup recovery, and JSON export/import validation.
 - `src/art/` — **Procedural pixel-art asset pipeline** (`pix.ts`, `island.ts`, `nature.ts`, `decor.ts`, `buildings.ts`, `plants.ts`, `creatures.ts`, `fx.ts`, `atlas.ts`).
 - `src/game/` — **Phaser 3 world renderer** (`WorldScene.ts`, `WorldCanvas.vue`).

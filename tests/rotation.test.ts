@@ -72,6 +72,8 @@ describe('Shop item rotation validation', () => {
       'stone_bench', 'picnic_table', 'gazebo',
       'cottage', 'shed', 'greenhouse', 'shelter', 'workshop',
       'windmill', 'observatory', 'sanctuary_bell',
+      'snow_bench', 'snowy_fence', 'santas_sleigh', 'christmas_stall',
+      'beach_chair', 'beach_towel', 'picnic_umbrella',
     ];
 
     for (const id of dedicated) {

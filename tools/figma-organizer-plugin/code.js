@@ -45,6 +45,8 @@ const UI_SHOP_ORDER = [
   'Screen - Shop Buildings',
   'Screen - Shop Furniture',
   'Screen - Shop Seeds',
+  'Screen - Shop Terrain',
+  'Screen - Shop Seasonal',
   'Screen - Inventory Bag',
   'Screen - Expand Island',
 ];
@@ -154,8 +156,11 @@ function classifyFrame(rawName) {
   }
 
   // Page 02 — World & Islands
-  if (name === 'Catalog - Islands Stages 1-10') {
+  if (name === 'Catalog - Islands Stages 1-10' || name === 'Catalog - Terrain & Islands') {
     return { pageKey: '02', section: 'Islands Overview Catalog', order: 0, species: null, kind: 'catalog' };
+  }
+  if (/^Terrain Patch\b/i.test(name) || /^Terrain Transition\b/i.test(name)) {
+    return { pageKey: '02', section: 'Customizable Biome Patches & Transitions', order: 5, species: null, kind: 'terrain' };
   }
   const stageDayMatch = /^Island Stage (\d+)\s*-\s*.+\(Day\)$/i.exec(name);
   if (stageDayMatch) {
@@ -226,7 +231,7 @@ function classifyFrame(rawName) {
   if (name === 'Catalog - Buildings' || /^Building\b/i.test(name)) {
     return { pageKey: '05', section: 'Buildings & Structures', order: 0, species: null, kind: 'buildings' };
   }
-  if (name === 'Catalog - Decorations' || /^Decoration\b/i.test(name)) {
+  if (name === 'Catalog - Decorations' || /^Decoration\b/i.test(name) || /^Seasonal\b/i.test(name)) {
     return { pageKey: '05', section: 'Furniture, Lighting, Paths & Seasonal Decor', order: 0, species: null, kind: 'decorations' };
   }
 

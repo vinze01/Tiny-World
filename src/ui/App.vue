@@ -6,11 +6,12 @@ import {
   PLANT_STAGE_NAMES,
   affectionLevel,
   obstacleClearCost,
+  obstacleClearReward,
   resaleValue,
 } from '../core/catalog';
 import { effectiveEmotion } from '../core/actions';
 import { WEATHER_META } from '../core/events';
-import { footprintCells } from '../core/grid';
+import { canMoveObjects, footprintCells } from '../core/grid';
 import { canWater, isBlooming, msToBloom, plantProgress, plantStage } from '../core/plants';
 import type {
   BiomeId,
@@ -184,6 +185,7 @@ const selectedDecorInfo = computed(() => {
   const def = ITEM_BY_ID[o.type];
   if (!def) return null;
   const clearCost = obstacleClearCost(o.type);
+  const clearReward = o.locked ? obstacleClearReward(o.type) : null;
   const isProtected = !!def.protected || clearCost <= 0;
   const sellPrice = o.locked ? 0 : resaleValue(def.price);
   return {
@@ -193,6 +195,7 @@ const selectedDecorInfo = computed(() => {
     locked: !!o.locked,
     protected: isProtected,
     clearCost,
+    clearReward,
     sellPrice,
     highValue: def.price >= 25,
     rotatable: def.rotatable,
@@ -247,7 +250,7 @@ const canRotatePlacement = computed(() => {
   if (bm.kind === 'place-item') return ITEM_BY_ID[bm.itemId]?.rotatable ?? false;
   if (bm.kind === 'move-object') {
     const o = store.state.objects.find((x) => x.id === bm.objectId);
-    return o ? (ITEM_BY_ID[o.type]?.rotatable ?? false) : false;
+    return o && !o.plant ? (ITEM_BY_ID[o.type]?.rotatable ?? false) : false;
   }
   return false;
 });
@@ -263,9 +266,79 @@ const buildBannerLabel = computed(() => {
     return `Planting ${p?.name ?? bm.plantId} Seed`;
   }
   if (bm.kind === 'move-object') {
-    return 'Moving item to a new tile';
+    const o = store.state.objects.find((x) => x.id === bm.objectId);
+    if (o?.plant) {
+      const p = PLANT_BY_ID[o.type as PlantId];
+      return `Moving ${p?.name ?? 'Plant'} (keeps growth)`;
+    }
+    const d = o ? ITEM_BY_ID[o.type] : undefined;
+    return `Moving ${d?.name ?? 'item'} to a new tile`;
+  }
+  if (bm.kind === 'move-group') {
+    return `Moving ${bm.objectIds.length} items together`;
   }
   return '';
+});
+
+const objectDisplayName = (o: PlacedObject) =>
+  o.plant
+    ? (PLANT_BY_ID[o.type as PlantId]?.name ?? o.type)
+    : (ITEM_BY_ID[o.type]?.name ?? o.type);
+
+const multiSelectSummary = computed(() => {
+  const objs = store.selectedObjects;
+  const count = objs.length;
+  if (count === 0) {
+    return {
+      count: 0,
+      summary: 'Click plants, trees, scenery, furniture, or buildings to select them',
+      similarExtra: 0,
+      similarLabel: '',
+    };
+  }
+  const counts = new Map<string, { label: string; n: number }>();
+  const targetKeys = new Set<string>();
+  const selectedSet = new Set(objs.map((o) => o.id));
+  for (const o of objs) {
+    const k = `${o.plant ? 'plant' : 'item'}:${o.type}`;
+    targetKeys.add(k);
+    const prev = counts.get(k);
+    if (prev) prev.n++;
+    else counts.set(k, { label: objectDisplayName(o), n: 1 });
+  }
+  const entries = [...counts.values()];
+  const head = entries
+    .slice(0, 2)
+    .map((e) => (entries.length === 1 || e.n > 1 ? `${e.n}× ${e.label}` : e.label))
+    .join(', ');
+  const summary = entries.length > 2 ? `${head} +${entries.length - 2} more` : head;
+
+  const extraCount = store.state.objects.filter(
+    (o) => !selectedSet.has(o.id) && targetKeys.has(`${o.plant ? 'plant' : 'item'}:${o.type}`),
+  ).length;
+  const similarLabel =
+    entries.length === 1
+      ? `+ All ${entries[0].label} (+${extraCount})`
+      : `+ Same Type (+${extraCount})`;
+
+  return { count, summary, similarExtra: extraCount, similarLabel };
+});
+
+const groupMoveStatus = computed(() => {
+  const bm = store.buildMode;
+  if (bm.kind !== 'move-group') return null;
+  const idSet = new Set(bm.objectIds);
+  const objs = store.state.objects.filter((o) => idSet.has(o.id));
+  const chk = canMoveObjects(
+    store.state,
+    objs,
+    store.cursorCell.gx - bm.anchorGx,
+    store.cursorCell.gy - bm.anchorGy,
+  );
+  return {
+    ok: chk.ok,
+    text: chk.ok ? 'Valid spot' : `${chk.reason ?? 'Blocked'} (${chk.blockedIds.length})`,
+  };
 });
 </script>
 
@@ -273,180 +346,184 @@ const buildBannerLabel = computed(() => {
   <div class="app-shell" :class="`surface-${props.mode}`">
     <WorldCanvas v-if="store.ready" />
 
-    <!-- TOP HUD -->
-    <header class="hud-top">
-      <div class="hud-row-main">
-        <div class="hud-left">
-          <button
-            type="button"
-            class="tw-panel stage-pill"
-            :title="`${store.stageDef.name} (${biomeLabel}) — View Island Stage & Progression`"
-            @click="toggleTab('expand')"
-          >
-            <span class="tw-title">{{ store.stageDef.name }}</span>
-            <span class="sub-chip">Stage {{ store.state.stage }} · {{ biomeLabel }}</span>
-          </button>
-        </div>
-
-        <div class="hud-right">
-          <div class="tw-panel token-banner" aria-label="Nature Tokens balance">
-            <img class="pixel-icon" :src="iconUrl('ui:token')" alt="Tokens" width="20" height="20" />
-            <span class="token-val">{{ store.state.tokens.toLocaleString() }}</span>
+    <!-- TOP HUD & QUICK GARDEN BAR -->
+    <div class="hud-top-stack">
+      <header class="hud-top">
+        <div class="hud-row-main">
+          <div class="hud-left">
+            <button
+              type="button"
+              class="tw-panel stage-pill"
+              :title="`${store.stageDef.name} (${biomeLabel}) — View Island Stage & Progression`"
+              @click="toggleTab('expand')"
+            >
+              <span class="tw-title">{{ store.stageDef.name }}</span>
+              <span class="sub-chip">Stage {{ store.state.stage }} · {{ biomeLabel }}</span>
+            </button>
           </div>
 
-          <button
-            v-if="props.mode === 'popup'"
-            type="button"
-            class="tw-btn tw-btn-gold"
-            title="Open Side Panel"
-            @click="openSidePanel"
-          >
-            Side Panel
-          </button>
-          <button
-            v-if="props.mode !== 'full'"
-            type="button"
-            class="tw-btn tw-btn-primary"
-            title="Open Full-Page TinyWorld"
-            @click="openFullWorld"
-          >
-            Full World ↗
-          </button>
-        </div>
-      </div>
+          <div class="hud-right">
+            <div class="tw-panel token-banner" aria-label="Nature Tokens balance">
+              <img class="pixel-icon" :src="iconUrl('ui:token')" alt="Tokens" width="20" height="20" />
+              <span class="token-val">{{ store.state.tokens.toLocaleString() }}</span>
+            </div>
 
-      <div class="hud-status-strip">
-        <div class="time-ctrl-wrap">
-          <button
-            type="button"
-            class="mini-pill clickable"
-            title="Adjust Time of Day Preview"
-            @click="showTimeMenu = !showTimeMenu"
-          >
-            {{ phaseLabel }}
-            <span v-if="store.state.settings.cycle !== 'real'" class="override-dot">
-              ·
-              {{
-                store.state.settings.cycle === 'custom'
-                  ? formattedHour
-                  : store.state.settings.cycle === 'fast'
-                    ? 'Fast'
-                    : 'Fixed'
-              }}
+            <button
+              v-if="props.mode === 'popup'"
+              type="button"
+              class="tw-btn tw-btn-gold"
+              title="Open Side Panel"
+              @click="openSidePanel"
+            >
+              Side Panel
+            </button>
+            <button
+              v-if="props.mode !== 'full'"
+              type="button"
+              class="tw-btn tw-btn-primary"
+              title="Open Full-Page TinyWorld"
+              @click="openFullWorld"
+            >
+              Full World ↗
+            </button>
+          </div>
+        </div>
+
+        <div class="hud-status-strip">
+          <div class="time-weather-pair">
+            <div class="time-ctrl-wrap">
+              <button
+                type="button"
+                class="mini-pill clickable"
+                title="Adjust Time of Day Preview"
+                @click="showTimeMenu = !showTimeMenu"
+              >
+                {{ phaseLabel }}
+                <span v-if="store.state.settings.cycle !== 'real'" class="override-dot">
+                  ·
+                  {{
+                    store.state.settings.cycle === 'custom'
+                      ? formattedHour
+                      : store.state.settings.cycle === 'fast'
+                        ? 'Fast'
+                        : 'Fixed'
+                  }}
+                </span>
+              </button>
+
+              <div v-if="showTimeMenu" class="tw-panel time-popover" role="dialog" aria-label="Time Preview Controls">
+                <div class="popover-head">
+                  <strong class="tw-title">Sky &amp; Time Preview</strong>
+                  <button type="button" class="tw-btn tw-btn-sm" aria-label="Close time controls" @click="showTimeMenu = false">
+                    ✕
+                  </button>
+                </div>
+                <div class="preset-grid">
+                  <button
+                    type="button"
+                    class="tw-btn tw-btn-sm"
+                    :class="{ 'tw-btn-gold': store.state.settings.cycle === 'real' }"
+                    @click="setCyclePreset('real')"
+                  >
+                    Auto
+                  </button>
+                  <button
+                    type="button"
+                    class="tw-btn tw-btn-sm"
+                    :class="{ 'tw-btn-gold': store.state.settings.cycle === 'custom' && Math.abs(manualHourVal - 7.5) < 0.6 }"
+                    @click="setCyclePreset('custom', 7.5)"
+                  >
+                    🌅 Morning
+                  </button>
+                  <button
+                    type="button"
+                    class="tw-btn tw-btn-sm"
+                    :class="{ 'tw-btn-gold': store.state.settings.cycle === 'day' }"
+                    @click="setCyclePreset('day', 13)"
+                  >
+                    ☀️ Daytime
+                  </button>
+                  <button
+                    type="button"
+                    class="tw-btn tw-btn-sm"
+                    :class="{ 'tw-btn-gold': store.state.settings.cycle === 'custom' && Math.abs(manualHourVal - 18.25) < 0.6 }"
+                    @click="setCyclePreset('custom', 18.25)"
+                  >
+                    🌇 Sunset
+                  </button>
+                  <button
+                    type="button"
+                    class="tw-btn tw-btn-sm"
+                    :class="{ 'tw-btn-gold': store.state.settings.cycle === 'night' }"
+                    @click="setCyclePreset('night', 22.5)"
+                  >
+                    🌙 Night
+                  </button>
+                </div>
+                <label class="hour-slider-row">
+                  <span>Hour: <strong>{{ formattedHour }}</strong></span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="23.75"
+                    step="0.25"
+                    aria-label="Manual sky hour slider"
+                    :value="manualHourVal"
+                    @input="onHourSlider"
+                  />
+                </label>
+                <small class="time-note">Visual preview only · Plant growth &amp; Night Owl stay real-time.</small>
+              </div>
+            </div>
+
+            <span class="mini-pill" :title="`Weather in ${biomeLabel}`">
+              {{ weatherBadge }}
             </span>
-          </button>
-
-          <div v-if="showTimeMenu" class="tw-panel time-popover" role="dialog" aria-label="Time Preview Controls">
-            <div class="popover-head">
-              <strong class="tw-title">Sky &amp; Time Preview</strong>
-              <button type="button" class="tw-btn tw-btn-sm" aria-label="Close time controls" @click="showTimeMenu = false">
-                ✕
-              </button>
-            </div>
-            <div class="preset-grid">
-              <button
-                type="button"
-                class="tw-btn tw-btn-sm"
-                :class="{ 'tw-btn-gold': store.state.settings.cycle === 'real' }"
-                @click="setCyclePreset('real')"
-              >
-                Auto
-              </button>
-              <button
-                type="button"
-                class="tw-btn tw-btn-sm"
-                :class="{ 'tw-btn-gold': store.state.settings.cycle === 'custom' && Math.abs(manualHourVal - 7.5) < 0.6 }"
-                @click="setCyclePreset('custom', 7.5)"
-              >
-                🌅 Morning
-              </button>
-              <button
-                type="button"
-                class="tw-btn tw-btn-sm"
-                :class="{ 'tw-btn-gold': store.state.settings.cycle === 'day' }"
-                @click="setCyclePreset('day', 13)"
-              >
-                ☀️ Daytime
-              </button>
-              <button
-                type="button"
-                class="tw-btn tw-btn-sm"
-                :class="{ 'tw-btn-gold': store.state.settings.cycle === 'custom' && Math.abs(manualHourVal - 18.25) < 0.6 }"
-                @click="setCyclePreset('custom', 18.25)"
-              >
-                🌇 Sunset
-              </button>
-              <button
-                type="button"
-                class="tw-btn tw-btn-sm"
-                :class="{ 'tw-btn-gold': store.state.settings.cycle === 'night' }"
-                @click="setCyclePreset('night', 22.5)"
-              >
-                🌙 Night
-              </button>
-            </div>
-            <label class="hour-slider-row">
-              <span>Hour: <strong>{{ formattedHour }}</strong></span>
-              <input
-                type="range"
-                min="0"
-                max="23.75"
-                step="0.25"
-                aria-label="Manual sky hour slider"
-                :value="manualHourVal"
-                @input="onHourSlider"
-              />
-            </label>
-            <small class="time-note">Visual preview only · Plant growth &amp; Night Owl stay real-time.</small>
           </div>
+
+          <button
+            v-if="store.state.pickups.length"
+            type="button"
+            class="pickup-alert active clickable"
+            title="Click to focus next sparkle on the island"
+            @click="store.focusNextPickup()"
+          >
+            ✨ {{ store.state.pickups.length }} waiting
+          </button>
+          <span v-else class="pickup-alert idle" title="Time until the next island sparkle">
+            ✨
+            <template v-if="props.mode === 'full'">
+              {{ etaLabel === 'Soon' ? 'Next sparkle soon' : `Next sparkle in ${etaLabel}` }}
+            </template>
+            <template v-else>{{ etaLabel }}</template>
+          </span>
         </div>
+      </header>
 
-        <span class="mini-pill" :title="`Weather in ${biomeLabel}`">
-          {{ weatherBadge }}
-        </span>
-
+      <!-- GARDEN QUICK BAR -->
+      <div
+        v-if="store.plantCount > 0 && store.activeTab === 'none' && store.buildMode.kind === 'none' && !store.multiSelectMode"
+        class="tw-panel garden-bar"
+        role="region"
+        aria-label="Garden quick actions"
+      >
         <button
-          v-if="store.state.pickups.length"
           type="button"
-          class="pickup-alert active clickable"
-          title="Click to focus next sparkle on the island"
-          @click="store.focusNextPickup()"
+          class="tw-btn tw-btn-sm tw-btn-gold"
+          :disabled="store.bloomingCount === 0"
+          @click="store.harvestAll()"
         >
-          ✨ {{ store.state.pickups.length }} waiting
+          🌸 Harvest All ({{ store.bloomingCount }})
         </button>
-        <span v-else class="pickup-alert idle" title="Time until the next island sparkle">
-          ✨
-          <template v-if="props.mode !== 'popup'">
-            {{ etaLabel === 'Soon' ? 'Next sparkle soon' : `Next sparkle in ${etaLabel}` }}
-          </template>
-          <template v-else>{{ etaLabel }}</template>
-        </span>
+        <button
+          type="button"
+          class="tw-btn tw-btn-sm tw-btn-primary"
+          :disabled="store.waterableCount === 0"
+          @click="store.waterAll()"
+        >
+          💧 Water All ({{ store.waterableCount }})
+        </button>
       </div>
-    </header>
-
-    <!-- GARDEN QUICK BAR -->
-    <div
-      v-if="store.plantCount > 0 && store.activeTab === 'none' && store.buildMode.kind === 'none'"
-      class="tw-panel garden-bar"
-      role="region"
-      aria-label="Garden quick actions"
-    >
-      <button
-        type="button"
-        class="tw-btn tw-btn-sm tw-btn-gold"
-        :disabled="store.bloomingCount === 0"
-        @click="store.harvestAll()"
-      >
-        🌸 Harvest All ({{ store.bloomingCount }})
-      </button>
-      <button
-        type="button"
-        class="tw-btn tw-btn-sm tw-btn-primary"
-        :disabled="store.waterableCount === 0"
-        @click="store.waterAll()"
-      >
-        💧 Water All ({{ store.waterableCount }})
-      </button>
     </div>
 
     <!-- WELCOME BACK BANNER -->
@@ -474,7 +551,16 @@ const buildBannerLabel = computed(() => {
 
     <!-- BUILD / PLACEMENT TOOLBAR -->
     <div v-if="store.buildMode.kind !== 'none'" class="tw-panel build-bar" role="region" aria-label="Placement controls">
-      <span class="build-title">{{ buildBannerLabel }}</span>
+      <div class="build-head">
+        <span class="build-title">{{ buildBannerLabel }}</span>
+        <span
+          v-if="groupMoveStatus"
+          class="group-status-pill"
+          :class="groupMoveStatus.ok ? 'ok' : 'blocked'"
+        >
+          {{ groupMoveStatus.text }}
+        </span>
+      </div>
       <div class="build-btns">
         <button
           type="button"
@@ -492,6 +578,48 @@ const buildBannerLabel = computed(() => {
           ↻ Rotate (R)
         </button>
         <button type="button" class="tw-btn" @click="store.cancelBuild()">Cancel (Esc)</button>
+      </div>
+    </div>
+
+    <!-- MULTI-SELECT BAR -->
+    <div
+      v-else-if="store.multiSelectMode && store.activeTab === 'none'"
+      class="tw-panel inspector-bar multi-bar"
+      role="region"
+      aria-label="Multi-select objects"
+    >
+      <div class="insp-meta">
+        <strong>Multi-Select ({{ multiSelectSummary.count }})</strong>
+        <small>{{ multiSelectSummary.summary }}</small>
+      </div>
+      <div class="insp-actions">
+        <button
+          type="button"
+          class="tw-btn tw-btn-primary"
+          :disabled="multiSelectSummary.count === 0"
+          @click="store.startMoveSelected()"
+        >
+          Move ({{ multiSelectSummary.count }})
+        </button>
+        <button
+          v-if="multiSelectSummary.similarExtra > 0"
+          type="button"
+          class="tw-btn tw-btn-gold"
+          @click="store.selectSimilarObjects()"
+        >
+          {{ multiSelectSummary.similarLabel }}
+        </button>
+        <button
+          v-if="multiSelectSummary.count > 0"
+          type="button"
+          class="tw-btn tw-btn-sm"
+          @click="store.clearMultiSelect()"
+        >
+          Clear
+        </button>
+        <button type="button" class="tw-btn" aria-label="Exit multi-select" @click="store.exitMultiSelect()">
+          Done
+        </button>
       </div>
     </div>
 
@@ -525,6 +653,22 @@ const buildBannerLabel = computed(() => {
         >
           💧 Water
         </button>
+        <button
+          type="button"
+          class="tw-btn"
+          title="Move plant to another soil tile without uprooting"
+          @click="store.startMoveObject(selectedPlantInfo.id)"
+        >
+          Move
+        </button>
+        <button
+          type="button"
+          class="tw-btn"
+          title="Select multiple objects or plants to move together"
+          @click="store.enterMultiSelect(selectedPlantInfo.id)"
+        >
+          Multi-Select
+        </button>
         <button type="button" class="tw-btn" @click="store.removeObject(selectedPlantInfo.id)">Uproot</button>
         <button
           v-if="overlappingObject"
@@ -548,8 +692,32 @@ const buildBannerLabel = computed(() => {
       <div class="insp-meta">
         <strong>{{ selectedDecorInfo.name }}</strong>
         <small>{{ selectedDecorInfo.desc }}</small>
+        <small
+          v-if="selectedDecorInfo.locked && !selectedDecorInfo.protected && selectedDecorInfo.clearReward"
+          class="clear-reward-hint"
+        >
+          Clear reward: +1 {{ selectedDecorInfo.clearReward.label }} → Bag
+        </small>
       </div>
       <div class="insp-actions">
+        <button
+          v-if="selectedDecorInfo.rotatable"
+          type="button"
+          class="tw-btn"
+          @click="store.rotateObject(selectedDecorInfo.id)"
+        >
+          ↻ Rotate
+        </button>
+        <button type="button" class="tw-btn" @click="store.startMoveObject(selectedDecorInfo.id)">Move</button>
+        <button
+          type="button"
+          class="tw-btn"
+          title="Select multiple objects to move together"
+          @click="store.enterMultiSelect(selectedDecorInfo.id)"
+        >
+          Multi-Select
+        </button>
+
         <template v-if="selectedDecorInfo.locked">
           <span v-if="selectedDecorInfo.protected" class="locked-chip">Essential Landmark · Protected</span>
           <template v-else-if="pendingConfirm === 'clear'">
@@ -562,7 +730,7 @@ const buildBannerLabel = computed(() => {
                 pendingConfirm = null;
               "
             >
-              Confirm Clear (-{{ selectedDecorInfo.clearCost }} 🪙)
+              Confirm Clear (-{{ selectedDecorInfo.clearCost }} 🪙<template v-if="selectedDecorInfo.clearReward"> · +{{ selectedDecorInfo.clearReward.label }}</template>)
             </button>
             <button type="button" class="tw-btn" @click="pendingConfirm = null">Cancel</button>
           </template>
@@ -571,6 +739,11 @@ const buildBannerLabel = computed(() => {
             type="button"
             class="tw-btn tw-btn-gold"
             :disabled="store.state.tokens < selectedDecorInfo.clearCost"
+            :title="
+              selectedDecorInfo.clearReward
+                ? `Clear for ${selectedDecorInfo.clearCost} Tokens and keep +1 ${selectedDecorInfo.clearReward.label} in Bag`
+                : `Clear for ${selectedDecorInfo.clearCost} Tokens`
+            "
             @click="pendingConfirm = 'clear'"
           >
             🪓 Clear (-{{ selectedDecorInfo.clearCost }} 🪙)
@@ -578,15 +751,6 @@ const buildBannerLabel = computed(() => {
         </template>
 
         <template v-else>
-          <button
-            v-if="selectedDecorInfo.rotatable"
-            type="button"
-            class="tw-btn"
-            @click="store.rotateObject(selectedDecorInfo.id)"
-          >
-            ↻ Rotate
-          </button>
-          <button type="button" class="tw-btn" @click="store.startMoveObject(selectedDecorInfo.id)">Move</button>
           <button type="button" class="tw-btn" @click="store.removeObject(selectedDecorInfo.id)">Store</button>
           <template v-if="selectedDecorInfo.sellPrice > 0">
             <template v-if="selectedDecorInfo.highValue && pendingConfirm === 'sell'">
@@ -802,16 +966,24 @@ const buildBannerLabel = computed(() => {
   height: 100%;
   overflow: hidden;
 }
-.hud-top {
+.hud-top-stack {
   position: absolute;
   top: 8px;
   left: 8px;
   right: 8px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  align-items: flex-start;
+  gap: 10px;
   pointer-events: none;
   z-index: 25;
+}
+.hud-top {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  pointer-events: none;
 }
 .hud-row-main {
   display: flex;
@@ -838,6 +1010,7 @@ const buildBannerLabel = computed(() => {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  text-align: left;
   cursor: pointer;
 }
 .stage-pill .tw-title {
@@ -849,18 +1022,32 @@ const buildBannerLabel = computed(() => {
   font-weight: 700;
   color: var(--ink-soft);
 }
+.time-weather-pair {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 6px;
+  min-width: 278px;
+}
+.time-weather-pair .time-ctrl-wrap > .mini-pill,
+.time-weather-pair > .mini-pill {
+  width: 100%;
+}
 .mini-pill,
 .pickup-alert {
   background: rgba(255, 248, 224, 0.94);
   border: 2px solid var(--wood-dark);
   border-radius: 999px;
-  padding: 3px 9px;
+  padding: 4px 10px;
+  min-height: 28px;
   font-family: var(--font-body);
   font-size: 11.5px;
   font-weight: 800;
   color: var(--ink);
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  white-space: nowrap;
   gap: 4px;
 }
 .pickup-alert.active {
@@ -937,17 +1124,25 @@ const buildBannerLabel = computed(() => {
   color: var(--wood-dark);
 }
 .garden-bar {
-  position: absolute;
-  top: 82px;
-  left: 8px;
-  display: flex;
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
   gap: 6px;
-  padding: 5px 8px;
-  z-index: 23;
+  min-width: 278px;
+  padding: 6px 8px;
+  pointer-events: auto;
+}
+.garden-bar .tw-btn {
+  width: 100%;
+  min-height: 28px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  white-space: nowrap;
+  justify-content: center;
 }
 .welcome-toast {
   position: absolute;
-  top: 86px;
+  top: 132px;
   left: 50%;
   transform: translateX(-50%);
   width: min(420px, 92vw);
@@ -1046,6 +1241,11 @@ const buildBannerLabel = computed(() => {
   background: var(--cream-lo);
   color: var(--ink-soft);
 }
+.clear-reward-hint {
+  display: block;
+  color: var(--forest-dark);
+  font-weight: 700;
+}
 .extra-creature-actions {
   width: 100%;
   display: flex;
@@ -1054,9 +1254,35 @@ const buildBannerLabel = computed(() => {
   padding-top: 4px;
   border-top: 1px dashed var(--wood);
 }
+.build-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .build-title {
   font-weight: 800;
   font-size: 13px;
+}
+.group-status-pill {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--wood-dark);
+}
+.group-status-pill.ok {
+  background: #e5f2e1;
+  color: var(--forest-dark);
+  border-color: var(--forest);
+}
+.group-status-pill.blocked {
+  background: #fde3e3;
+  color: #8f2323;
+  border-color: var(--danger);
+}
+.multi-bar {
+  max-width: min(620px, 95vw);
 }
 .build-btns,
 .insp-actions {
@@ -1116,58 +1342,92 @@ const buildBannerLabel = computed(() => {
   pointer-events: auto;
 }
 
-/* Compact popup (420px wide) overrides so top HUD buttons never wrap under toasts */
-.surface-popup .hud-top {
+/* Compact popup (420px) & side panel (380px) overrides so HUD controls stay evenly sized without overlap */
+.surface-popup .hud-top-stack,
+.surface-sidepanel .hud-top-stack {
   top: 6px;
   left: 6px;
   right: 6px;
-  gap: 4px;
+  gap: 8px;
 }
-.surface-popup .stage-pill {
+.surface-popup .hud-top,
+.surface-sidepanel .hud-top {
+  gap: 6px;
+}
+.surface-popup .stage-pill,
+.surface-sidepanel .stage-pill {
   padding: 4px 8px;
 }
-.surface-popup .stage-pill .tw-title {
-  font-size: 12.5px;
+.surface-popup .stage-pill .tw-title,
+.surface-sidepanel .stage-pill .tw-title {
+  font-size: 12px;
+  white-space: nowrap;
 }
-.surface-popup .sub-chip {
-  font-size: 10px;
+.surface-popup .sub-chip,
+.surface-sidepanel .sub-chip {
+  font-size: 9.5px;
+  white-space: nowrap;
 }
-.surface-popup .hud-right {
+.surface-popup .hud-right,
+.surface-sidepanel .hud-right {
   gap: 4px;
 }
-.surface-popup .token-banner {
+.surface-popup .token-banner,
+.surface-sidepanel .token-banner {
   padding: 3px 8px;
 }
-.surface-popup .token-val {
+.surface-popup .token-val,
+.surface-sidepanel .token-val {
   font-size: 13.5px;
 }
-.surface-popup .hud-right .tw-btn {
+.surface-popup .hud-right .tw-btn,
+.surface-sidepanel .hud-right .tw-btn {
   padding: 4px 7px;
   font-size: 11px;
+  white-space: nowrap;
+}
+.surface-popup .time-weather-pair,
+.surface-sidepanel .time-weather-pair {
+  min-width: 248px;
+  gap: 5px;
 }
 .surface-popup .mini-pill,
-.surface-popup .pickup-alert {
-  padding: 2px 7px;
-  font-size: 10.5px;
+.surface-popup .pickup-alert,
+.surface-sidepanel .mini-pill,
+.surface-sidepanel .pickup-alert {
+  padding: 3px 8px;
+  min-height: 26px;
+  font-size: 11px;
 }
-.surface-popup .garden-bar {
-  top: 76px;
-  left: 6px;
-  padding: 3px 6px;
+.surface-popup .garden-bar,
+.surface-sidepanel .garden-bar {
+  min-width: 248px;
+  padding: 5px 7px;
+  gap: 5px;
 }
-.surface-popup .welcome-toast {
-  top: 84px;
+.surface-popup .garden-bar .tw-btn,
+.surface-sidepanel .garden-bar .tw-btn {
+  min-height: 26px;
+  padding: 4px 6px;
+  font-size: 11px;
 }
-.surface-popup .toast-stack {
-  top: 114px;
+.surface-popup .welcome-toast,
+.surface-sidepanel .welcome-toast {
+  top: 136px;
+}
+.surface-popup .toast-stack,
+.surface-sidepanel .toast-stack {
+  top: 136px;
   right: 6px;
   max-width: 240px;
 }
-.surface-popup .toast-item {
+.surface-popup .toast-item,
+.surface-sidepanel .toast-item {
   font-size: 11px;
   padding: 4px 8px;
 }
-.surface-popup .dock-btn {
+.surface-popup .dock-btn,
+.surface-sidepanel .dock-btn {
   padding: 5px 7px;
   font-size: 11.5px;
 }

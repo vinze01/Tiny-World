@@ -1,7 +1,6 @@
-import { stageBiome } from '../core/catalog';
 import { terrainMap } from '../core/grid';
 import { hash } from '../core/rng';
-import type { BiomeId, Terrain } from '../core/types';
+import type { BiomeId, CustomTerrainKind, Terrain } from '../core/types';
 import { Pix, OUTLINE, darken, lighten, mixc, noise, ramp } from './pix';
 
 export interface IslandTex {
@@ -66,6 +65,145 @@ export const buildTerrainTile = (
   const p = new Pix(32, 16);
   drawTopTile(p, 0, 0, kind, 0, 0, waterFrame, grassPaletteFor(biome), biome);
   return { pix: p, ox: 16, oy: 0 };
+};
+
+/**
+ * Render a neighbor-aware 32×16 isometric custom terrain patch (`snow` or `sand`).
+ *
+ * `sameMask` is a 4-bit cardinal mask (`1=N/gy-1, 2=E/gx+1, 4=S/gy+1, 8=W/gx-1`)
+ * where bits set to 1 mean the adjacent tile has the *same* terrain, so that edge extends
+ * seamlessly to the tile boundary to form a continuous snowfield or desert.
+ *
+ * `otherMask` is a 4-bit cardinal mask where bits set to 1 mean the adjacent tile has the
+ * *opposite* custom terrain (`snow` next to `sand`), creating a cohesive transition with zero gaps.
+ *
+ * Edges with neither bit set border default meadow grass and render soft scalloped pixel-art transitions
+ * with subtle grass blades or sand/snow grains peeking through.
+ */
+export const buildCustomTerrainPatch = (
+  kind: CustomTerrainKind,
+  sameMask = 0,
+  otherMask = 0,
+): IslandTex => {
+  const p = new Pix(32, 16);
+  const pal = kind === 'snow' ? SNOW : SAND;
+  const otherPal = kind === 'snow' ? SAND : SNOW;
+
+  const sameN = (sameMask & 1) !== 0; // v = 0 edge (gy - 1)
+  const sameE = (sameMask & 2) !== 0; // u = 1 edge (gx + 1)
+  const sameS = (sameMask & 4) !== 0; // v = 1 edge (gy + 1)
+  const sameW = (sameMask & 8) !== 0; // u = 0 edge (gx - 1)
+
+  const otherN = (otherMask & 1) !== 0;
+  const otherE = (otherMask & 2) !== 0;
+  const otherS = (otherMask & 4) !== 0;
+  const otherW = (otherMask & 8) !== 0;
+
+  for (let dy = 0; dy < 16; dy++) {
+    for (let dx = 0; dx < 32; dx++) {
+      const rx = dx + 0.5 - 16;
+      const ry = dy + 0.5;
+      const u = (ry / 8 + rx / 16) / 2;
+      const v = (ry / 8 - rx / 16) / 2;
+      if (!inside(u, v)) continue;
+
+      const n = noise(dx, dy, kind === 'snow' ? 71 : 83);
+      const edgeWobble = (noise(dx * 2, dy * 2, 53) - 0.5) * 0.14;
+
+      // Distance from each cardinal edge when that edge borders grass (not same, not other)
+      const grassDistN = sameN || otherN ? 1 : v;
+      const grassDistS = sameS || otherS ? 1 : 1 - v;
+      const grassDistW = sameW || otherW ? 1 : u;
+      const grassDistE = sameE || otherE ? 1 : 1 - u;
+      const minGrassDist = Math.min(grassDistN, grassDistS, grassDistW, grassDistE);
+
+      // Soft scalloped transition against meadow grass
+      const cutoff = 0.13 + edgeWobble;
+      if (minGrassDist < cutoff) {
+        // Leave outer fringe transparent so underlying meadow grass peeks through naturally,
+        // with occasional scattered snow/sand grains right along the border
+        if (minGrassDist > cutoff - 0.045 && n > 0.62) {
+          p.set(dx, dy, kind === 'snow' ? GRASS[3] : mixc(pal[0], GRASS[2], 0.45));
+        }
+        continue;
+      }
+
+      // Base surface shading
+      let c = n > 0.76 ? pal[3] : n > 0.26 ? pal[2] : pal[1];
+
+      // Soft inner rim shading near grass borders
+      if (minGrassDist < cutoff + 0.09) {
+        c = n > 0.55 ? pal[1] : pal[0];
+      }
+
+      // Coherent interlocking blend where Snow meets Sand directly (no gaps or dark seams)
+      const otherDistN = otherN ? v : 1;
+      const otherDistS = otherS ? 1 - v : 1;
+      const otherDistW = otherW ? u : 1;
+      const otherDistE = otherE ? 1 - u : 1;
+      const minOtherDist = Math.min(otherDistN, otherDistS, otherDistW, otherDistE);
+      if (minOtherDist < 0.16) {
+        const blendT = 0.45 * (1 - minOtherDist / 0.16);
+        c = mixc(c, otherPal[1], blendT);
+      }
+
+      p.set(dx, dy, c);
+    }
+  }
+
+  // Subtle surface details in the center so connected fields feel alive without visual noise
+  if (kind === 'snow') {
+    p.set(14, 7, 0xffffff);
+    p.set(19, 9, SNOW[0]);
+    if (!sameN && !otherN) p.set(16, 3, GRASS[2]);
+  } else {
+    p.set(13, 8, SAND[3]);
+    p.set(18, 7, SAND[0]);
+    p.set(20, 9, SAND[3]);
+    if (!sameS && !otherS) p.set(15, 12, GRASS[2]);
+  }
+
+  return { pix: p, ox: 16, oy: 0 };
+};
+
+/** Shop/Bag icon sprite for terrain customization patches (Green Grass, Snow Patch, Sand Patch). */
+export const terrainPatchSprite = (kind: 'grass' | CustomTerrainKind): { pix: Pix; ax: number } => {
+  const p = new Pix(32, 20);
+  const topPal = kind === 'snow' ? SNOW : kind === 'sand' ? SAND : GRASS;
+  // Draw raised 32x16 diamond with a 3px earthen rim and crisp outline for Shop/Bag readability
+  for (let dy = 0; dy < 16; dy++) {
+    for (let dx = 0; dx < 32; dx++) {
+      const rx = dx + 0.5 - 16;
+      const ry = dy + 0.5;
+      const u = (ry / 8 + rx / 16) / 2;
+      const v = (ry / 8 - rx / 16) / 2;
+      if (!inside(u, v)) continue;
+      const edge = Math.min(u, v, 1 - u, 1 - v);
+      if (edge < 0.08) continue;
+      const n = noise(dx, dy, kind === 'snow' ? 17 : kind === 'sand' ? 29 : 11);
+      const c = edge < 0.18 ? topPal[0] : n > 0.72 ? topPal[3] : n > 0.28 ? topPal[2] : topPal[1];
+      p.set(dx, dy + 1, c);
+      if (u > 0.78 || v > 0.78) {
+        p.set(dx, dy + 2, CLIFF[2]);
+        p.set(dx, dy + 3, CLIFF[1]);
+      }
+    }
+  }
+  if (kind === 'grass') {
+    p.set(14, 7, GRASS[3]);
+    p.set(15, 6, GRASS[3]);
+    p.set(18, 9, 0xfef08a);
+  } else if (kind === 'snow') {
+    p.set(13, 7, 0xffffff);
+    p.set(18, 8, 0xffffff);
+    p.set(16, 6, ICE[2]);
+  } else {
+    p.set(14, 8, SAND[3]);
+    p.set(17, 7, SAND[0]);
+    p.set(19, 9, SAND[3]);
+  }
+  p.outline(OUTLINE);
+  return { pix: p, ax: 16 };
 };
 
 const drawTopTile = (
@@ -179,7 +317,8 @@ const column = (p: Pix, cx: number, topY: number, h: number, r: number, cool: nu
 
 export const buildIsland = (stage: number, waterFrame: number, biomeOverride?: BiomeId | null): IslandTex => {
   const m = terrainMap(stage);
-  const biome = biomeOverride ?? stageBiome(stage);
+  // All stages 1..10 share a unified green meadow base by default unless an explicit biome preview is requested
+  const biome: BiomeId = biomeOverride ?? 'meadow';
   const cliffPal = cliffPaletteFor(biome);
   const grassPal = grassPaletteFor(biome);
   const padX = 28, padTop = 18;

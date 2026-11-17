@@ -38,7 +38,7 @@ const STAGE1_ROWS: string[] = [
   'gggggppg',
   'ggggwwgg',
   'gggwwwgg',
-  'ggggggss',
+  'gggggggg',
   '.ggggggg',
   '..ggggg.',
 ];
@@ -88,69 +88,37 @@ const paintStageFeatures = (cells: Terrain[][], stage: number, n: number) => {
 
   if (stage === 2) {
     setZone(9, 5, 10, 6, 'plot');
-    setZone(8, 5, 8, 6, 'sand');
   } else if (stage === 3) {
     setZone(10, 3, 12, 4, 'water');
-    setZone(9, 4, 9, 4, 'sand');
     setZone(6, 11, 8, 12, 'plot');
   } else if (stage === 4) {
     setZone(13, 8, 15, 10, 'water');
-    setZone(16, 9, 16, 10, 'sand');
     setZone(13, 13, 15, 14, 'plot');
   } else if (stage === 5) {
     setZone(17, 13, 19, 15, 'water');
-    setZone(16, 15, 16, 16, 'sand');
     setZone(18, 8, 20, 9, 'plot');
   } else if (stage === 6) {
-    // Frostfall Haven: powdery snow crown + glacial pools
-    setZone(20, 4, 24, 12, 'snow');
     setZone(21, 9, 23, 11, 'water');
-    setZone(20, 10, 20, 11, 'ice');
-    setZone(18, 21, 21, 23, 'snow');
   } else if (stage === 7) {
-    // Mistwood Hollow: amber woodland clearing + brook
-    setZone(2, 18, 9, 25, 'autumn');
     setZone(5, 21, 7, 23, 'water');
     setZone(9, 22, 11, 23, 'plot');
   } else if (stage === 8) {
-    // Emberglow Valley: warm sands & soothing geothermal hotsprings
-    setZone(20, 18, 26, 25, 'sand');
-    setZone(22, 20, 24, 22, 'hotspring');
+    setZone(22, 20, 24, 22, 'water');
     setZone(23, 24, 25, 25, 'plot');
   } else if (stage === 9) {
-    // Starlight Isles: cosmic starstone terrace + mirror sky pool
-    setZone(10, 24, 17, 30, 'starstone');
     setZone(13, 26, 15, 28, 'water');
     setZone(16, 27, 17, 28, 'plot');
   } else if (stage === 10) {
-    // Everdream Paradise: outer ring uniting meadow, snow, autumn, and starlight
-    setZone(28, 8, 33, 15, 'snow');
-    setZone(27, 17, 33, 24, 'grass');
     setZone(29, 20, 31, 22, 'water');
-    setZone(18, 28, 26, 33, 'starstone');
-    setZone(21, 30, 23, 31, 'hotspring');
-    setZone(6, 27, 14, 33, 'autumn');
+    setZone(21, 30, 23, 31, 'water');
   }
 
-  // Fill remaining reachable rounded-island void tiles with biome-appropriate default land
-  const defaultLand: Terrain =
-    stage === 6 ? 'snow' :
-    stage === 7 ? 'autumn' :
-    stage === 9 ? 'starstone' :
-    'grass';
-
+  // Fill all remaining reachable rounded-island void tiles with unified meadow green grass
   for (let gy = 0; gy < n; gy++) {
     for (let gx = 0; gx < n; gx++) {
       if (!inRoundedBounds(gx, gy, n)) continue;
       if (cells[gy][gx] !== 'void') continue;
-      if (stage === 10) {
-        if (gx >= 26 && gy <= 16) cells[gy][gx] = 'snow';
-        else if (gx <= 14 && gy >= 26) cells[gy][gx] = 'autumn';
-        else if (gy >= 27 && gx >= 15) cells[gy][gx] = 'starstone';
-        else cells[gy][gx] = 'grass';
-      } else {
-        cells[gy][gx] = defaultLand;
-      }
+      cells[gy][gx] = 'grass';
     }
   }
 };
@@ -218,9 +186,67 @@ export interface PlaceCheck {
   reason?: string;
 }
 
+export interface GroupMoveCheck {
+  ok: boolean;
+  reason?: string;
+  blockedIds: string[];
+}
+
+export const terrainKey = (gx: number, gy: number): string => `${gx},${gy}`;
+
+export const customTerrainAt = (
+  state: Pick<GameState, 'customTerrain'>,
+  gx: number,
+  gy: number,
+): 'snow' | 'sand' | undefined => state.customTerrain?.[terrainKey(gx, gy)];
+
+export const effectiveTerrainAt = (
+  state: Pick<GameState, 'stage' | 'customTerrain'>,
+  gx: number,
+  gy: number,
+): Terrain => {
+  const base = terrainAt(state.stage, gx, gy);
+  if (base === 'void' || isWaterTerrain(base)) return base;
+  return customTerrainAt(state, gx, gy) ?? base;
+};
+
+/**
+ * 4-bit cardinal neighbor mask (bit0=N/gy-1, bit1=E/gx+1, bit2=S/gy+1, bit3=W/gx-1)
+ * indicating which adjacent tiles share the same custom terrain type (`snow` or `sand`).
+ */
+export const terrainNeighborMask = (
+  customTerrain: Record<string, 'snow' | 'sand'> | undefined,
+  gx: number,
+  gy: number,
+  kind: 'snow' | 'sand',
+): number => {
+  if (!customTerrain) return 0;
+  let mask = 0;
+  if (customTerrain[terrainKey(gx, gy - 1)] === kind) mask |= 1;
+  if (customTerrain[terrainKey(gx + 1, gy)] === kind) mask |= 2;
+  if (customTerrain[terrainKey(gx, gy + 1)] === kind) mask |= 4;
+  if (customTerrain[terrainKey(gx - 1, gy)] === kind) mask |= 8;
+  return mask;
+};
+
+/**
+ * 4-bit cardinal neighbor mask indicating which adjacent tiles have the *other* custom terrain
+ * (e.g. `sand` bordering `snow`), used to render seamless snow↔sand transitions.
+ */
+export const terrainOppositeNeighborMask = (
+  customTerrain: Record<string, 'snow' | 'sand'> | undefined,
+  gx: number,
+  gy: number,
+  kind: 'snow' | 'sand',
+): number => {
+  if (!customTerrain) return 0;
+  const other = kind === 'snow' ? 'sand' : 'snow';
+  return terrainNeighborMask(customTerrain, gx, gy, other);
+};
+
 /** Validate placing `def` at (gx, gy). `ignoreId` lets an object move onto its own cells. */
 export const canPlace = (
-  state: Pick<GameState, 'stage' | 'objects'>,
+  state: Pick<GameState, 'stage' | 'objects' | 'customTerrain'>,
   def: ItemDef,
   gx: number,
   gy: number,
@@ -228,6 +254,22 @@ export const canPlace = (
   ignoreId?: string,
   opts: { plant?: boolean } = {},
 ): PlaceCheck => {
+  if (def.category === 'terrain' || def.terrainPaint) {
+    const t = terrainAt(state.stage, gx, gy);
+    if (t === 'void') return { ok: false, reason: 'Out of the island' };
+    if (isWaterTerrain(t)) return { ok: false, reason: "Can't place terrain on water" };
+    const cur = customTerrainAt(state, gx, gy);
+    const paint = def.terrainPaint ?? (def.id === 'snow_patch' ? 'snow' : def.id === 'sand_patch' ? 'sand' : 'grass');
+    if (paint === 'grass') {
+      if (!cur) return { ok: false, reason: 'Already green grass here' };
+      return { ok: true };
+    }
+    if (cur === paint) {
+      return { ok: false, reason: paint === 'snow' ? 'Already snowy here' : 'Already sandy here' };
+    }
+    return { ok: true };
+  }
+
   const cells = footprintCells(def, gx, gy, rot);
   const others = state.objects.filter((o) => o.id !== ignoreId);
   for (const c of cells) {
@@ -249,6 +291,49 @@ export const canPlace = (
     }
   }
   return { ok: true };
+};
+
+/** Validate shifting a group of placed objects by `(dx, dy)` atomically, ignoring collisions among moving items themselves. */
+export const canMoveObjects = (
+  state: Pick<GameState, 'stage' | 'objects'>,
+  objs: PlacedObject[],
+  dx: number,
+  dy: number,
+): GroupMoveCheck => {
+  if (objs.length === 0) return { ok: false, reason: 'Select at least one object', blockedIds: [] };
+  if (!Number.isInteger(dx) || !Number.isInteger(dy)) {
+    return { ok: false, reason: 'Invalid destination offset', blockedIds: objs.map((o) => o.id) };
+  }
+
+  const movingIds = new Set(objs.map((o) => o.id));
+  const placedTargets: PlacedObject[] = state.objects.filter((o) => !movingIds.has(o.id));
+  const blockedIds: string[] = [];
+  let firstReason: string | undefined;
+
+  for (const o of objs) {
+    const def = objDef(o);
+    if (!def) {
+      blockedIds.push(o.id);
+      firstReason ??= 'Unknown object';
+      continue;
+    }
+    const rot: 0 | 1 = !o.plant && def.rotatable && o.rot === 1 ? 1 : 0;
+    const tx = o.gx + dx;
+    const ty = o.gy + dy;
+    const chk = canPlace({ stage: state.stage, objects: placedTargets }, def, tx, ty, rot, undefined, {
+      plant: !!o.plant,
+    });
+    if (!chk.ok) {
+      blockedIds.push(o.id);
+      firstReason ??= chk.reason ?? 'Cannot move selection here';
+    } else {
+      placedTargets.push({ ...o, gx: tx, gy: ty, rot });
+    }
+  }
+
+  return blockedIds.length > 0
+    ? { ok: false, reason: firstReason, blockedIds }
+    : { ok: true, blockedIds: [] };
 };
 
 /** Which cells can creatures walk through? */

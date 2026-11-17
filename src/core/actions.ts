@@ -1,8 +1,8 @@
 import {
   ACHIEVEMENTS, AFFECTION_LEVELS, AFFECTION_REWARDS, CREATURE_BY_ID, EVENT_BY_ID, ITEM_BY_ID, MAX_PLAYABLE_STAGE, MS_MIN,
-  PLANT_BY_ID, STAGES, TREAT_ID, TREAT_PRICE, affectionLevel, decorKey, obstacleClearCost, resaleValue, seedKey,
+  PLANT_BY_ID, STAGES, TREAT_ID, TREAT_PRICE, affectionLevel, decorKey, obstacleClearCost, obstacleClearReward, resaleValue, seedKey,
 } from './catalog';
-import { canPlace, objDef, PLANT_ITEM } from './grid';
+import { canMoveObjects, canPlace, objDef, PLANT_ITEM, terrainKey } from './grid';
 import { applyWater, canWater, isBlooming, resetAfterHarvest } from './plants';
 import { newCreature, sanitizeName, stageExpansionObjects, VALID_BIOMES } from './state';
 import { isRealNight } from './daycycle';
@@ -82,7 +82,7 @@ export const finalize = (s: GameState, ctx: Ctx, fx: Effect[]) => {
     ensure(s.stage >= 5, 'nimbus');
     ensure(s.stage >= 6, 'frosty');
     ensure(
-      (s.stage >= 6 && (hasObj('snowman', 'hot_cocoa', 'snow_fort', 'ski_lodge') || (s.stats.harvested.frostberry ?? 0) >= 1)) || s.stage >= 7,
+      (s.stage >= 6 && (hasObj('snowman', 'hot_cocoa', 'snow_fort', 'ski_lodge', 'christmas_tree', 'reindeer', 'christmas_stall') || (s.stats.harvested.frostberry ?? 0) >= 1)) || s.stage >= 7,
       'flurry',
     );
     ensure(s.stage >= 7, 'wisp');
@@ -289,6 +289,20 @@ export const placeItem: Mutator<{ itemId: string; gx: number; gy: number; rot: 0
   const chk = canPlace(s, def, p.gx, p.gy, rot);
   if (!chk.ok) return fail(chk.reason ?? 'Cannot place here');
   takeInv(s, decorKey(def.id));
+
+  if (def.category === 'terrain' || def.terrainPaint) {
+    s.customTerrain ??= {};
+    const key = terrainKey(p.gx, p.gy);
+    const paint = def.terrainPaint ?? (def.id === 'snow_patch' ? 'snow' : def.id === 'sand_patch' ? 'sand' : 'grass');
+    if (paint === 'grass') {
+      delete s.customTerrain[key];
+    } else {
+      s.customTerrain[key] = paint;
+    }
+    fx.push({ type: 'fx', name: 'sparkle', gx: p.gx, gy: p.gy });
+    return done([], { terrain: paint, gx: p.gx, gy: p.gy });
+  }
+
   const obj: PlacedObject = { id: newId(s), type: def.id, gx: p.gx, gy: p.gy, rot, placedAt: ctx.now };
   s.objects.push(obj);
   if (def.price >= 5) s.stats.decorPlaced++;
@@ -300,11 +314,9 @@ export const placeItem: Mutator<{ itemId: string; gx: number; gy: number; rot: 0
 export const moveObject: Mutator<{ id: string; gx: number; gy: number; rot: 0 | 1 }> = withFinalize((s, _ctx, p) => {
   const o = getObj(s, p.id);
   if (!o) return fail('Nothing there');
-  if (o.locked) return fail('This is part of the island');
-  if (o.plant) return fail('Plants stay where they grow');
   const def = objDef(o);
-  const rot: 0 | 1 = def.rotatable && p.rot === 1 ? 1 : 0;
-  const chk = canPlace(s, def, p.gx, p.gy, rot, o.id);
+  const rot: 0 | 1 = !o.plant && def.rotatable && p.rot === 1 ? 1 : 0;
+  const chk = canPlace(s, def, p.gx, p.gy, rot, o.id, { plant: !!o.plant });
   if (!chk.ok) return fail(chk.reason ?? 'Cannot place here');
   o.gx = p.gx;
   o.gy = p.gy;
@@ -312,10 +324,33 @@ export const moveObject: Mutator<{ id: string; gx: number; gy: number; rot: 0 | 
   return done([]);
 });
 
+export const moveObjects: Mutator<{ ids: string[]; dx: number; dy: number }> = withFinalize((s, _ctx, p, fx) => {
+  if (!Array.isArray(p.ids) || p.ids.length === 0) return fail('Select at least one object');
+  if (!Number.isInteger(p.dx) || !Number.isInteger(p.dy)) return fail('Invalid destination offset');
+  const uniqueIds = [...new Set(p.ids)];
+  const objs: PlacedObject[] = [];
+  for (const id of uniqueIds) {
+    const o = getObj(s, id);
+    if (!o) return fail('One of the selected items is missing');
+    objs.push(o);
+  }
+  const chk = canMoveObjects(s, objs, p.dx, p.dy);
+  if (!chk.ok) return fail(chk.reason ?? 'Cannot move selection here');
+  if (p.dx !== 0 || p.dy !== 0) {
+    for (const o of objs) {
+      o.gx += p.dx;
+      o.gy += p.dy;
+    }
+    if (objs.length > 1) {
+      fx.push({ type: 'toast', text: `Moved ${objs.length} items!` });
+    }
+  }
+  return done([], { moved: objs.length, dx: p.dx, dy: p.dy });
+});
+
 export const rotateObject: Mutator<{ id: string }> = withFinalize((s, _ctx, p, fx) => {
   const o = getObj(s, p.id);
   if (!o) return fail('Nothing there');
-  if (o.locked) return fail('This is part of the island');
   if (o.plant) return fail('Plants cannot be rotated');
   const def = objDef(o);
   if (!def.rotatable) return fail('This item keeps one orientation');
@@ -368,7 +403,7 @@ export const sellPlacedObject: Mutator<{ id: string }> = withFinalize((s, _ctx, 
   return done([], { amount });
 });
 
-export const clearObstacle: Mutator<{ id: string }> = withFinalize((s, _ctx, p, fx) => {
+export const clearObstacle: Mutator<{ id: string }> = withFinalize((s, ctx, p, fx) => {
   const i = s.objects.findIndex((o) => o.id === p.id);
   if (i < 0) return fail('Nothing there');
   const o = s.objects[i];
@@ -383,11 +418,23 @@ export const clearObstacle: Mutator<{ id: string }> = withFinalize((s, _ctx, p, 
   s.stats.clearedObstacles = (s.stats.clearedObstacles ?? 0) + 1;
   s.objects.splice(i, 1);
   delete s.forage[o.id];
+  const reward = obstacleClearReward(o.type);
+  if (reward) {
+    giveInv(s, reward.key, 1);
+    if (reward.key.startsWith('decor:')) {
+      discover(s, `item:${reward.key.slice(6)}`, ctx.now, fx);
+    }
+  }
   fx.push({ type: 'tokens', amount: -cost, gx: o.gx, gy: o.gy });
   fx.push({ type: 'cleared', objectId: o.id, cost, gx: o.gx, gy: o.gy });
   fx.push({ type: 'fx', name: 'clear', gx: o.gx, gy: o.gy });
-  fx.push({ type: 'toast', text: `Cleared ${def.name} (-${cost} Tokens).` });
-  return done([], { cost, type: o.type });
+  fx.push({
+    type: 'toast',
+    text: reward
+      ? `Cleared ${def.name} (-${cost} Tokens) — Received ${reward.label} in your Bag!`
+      : `Cleared ${def.name} (-${cost} Tokens).`,
+  });
+  return done([], { cost, type: o.type, reward: reward?.key ?? null });
 });
 
 export const plantSeed: Mutator<{ plantId: PlantId; gx: number; gy: number }> = withFinalize((s, ctx, p, fx) => {
@@ -749,7 +796,7 @@ export const tickEvent: Mutator<{ night: boolean; force?: string }> = withFinali
 
 export const ACTIONS = {
   wake, touch, collectPickup, interact, tapPond, buy, sellItem, sellPlacedObject,
-  placeItem, moveObject, rotateObject, removeObject, clearObstacle,
+  placeItem, moveObject, moveObjects, rotateObject, removeObject, clearObstacle,
   plantSeed, waterPlant, waterAll, harvestPlant, harvestAll,
   petCreature, feedCreature, interactCreature, renameCreature,
   expandIsland, setSettings, setTutorial, tickEvent,
