@@ -1,6 +1,6 @@
 {
   "name": "tinyworld",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Tiny World - a little world, just for you. Cozy Chrome extension game.",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,10 @@
     "test:e2e": "node scripts/e2e.mjs",
     "icons": "node scripts/make-icons.mjs",
     "export:figma": "node scripts/export-figma.mjs",
-    "gallery": "node scripts/figma/serve-gallery.mjs"
+    "gallery": "node scripts/figma/serve-gallery.mjs",
+    "preview:showcase": "node scripts/serve-showcase.mjs",
+    "export:showcase-audio": "node scripts/export-showcase-audio.mjs",
+    "capture:stages": "node scripts/capture-all-stages.mjs"
   },
   "keywords": [],
   "author": "",

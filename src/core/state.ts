@@ -227,6 +227,7 @@ export const validateState = (raw: unknown, now = Date.now()): GameState | null 
   }
 
   const seen = new Set<string>();
+  const placedTerrain = new Set<string>();
   const objs: PlacedObject[] = [];
   if (!Array.isArray(m.objects)) return null;
   for (const o of m.objects) {
@@ -249,8 +250,23 @@ export const validateState = (raw: unknown, now = Date.now()): GameState | null 
     }
     const d = objDef(po);
     if (footprintCells(d, po.gx, po.gy, po.rot).some((c) => terrainAt(s.stage, c.gx, c.gy) === 'void')) continue;
+    if (d.terrainPaint) {
+      const key = terrainKey(po.gx, po.gy);
+      if (s.customTerrain[key] !== d.terrainPaint || placedTerrain.has(key)) continue;
+      placedTerrain.add(key);
+      delete po.locked;
+      po.rot = 0;
+    }
     seen.add(po.id);
     objs.push(po);
+  }
+  // Older saves have painted cells without placed items. Keep stable IDs until the next save.
+  for (const [key, paint] of Object.entries(s.customTerrain)) {
+    if (placedTerrain.has(key)) continue;
+    const [gx, gy] = key.split(',').map(Number);
+    let id = `terrain:${key}`;
+    while (seen.has(id)) id += ':';
+    objs.push({ id, type: paint === 'snow' ? 'snow_patch' : 'sand_patch', gx, gy, rot: 0, placedAt: s.createdAt });
   }
   s.objects = objs;
 

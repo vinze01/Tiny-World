@@ -33,6 +33,7 @@ import {
   isWaterTerrain,
   objDef,
   terrainAt,
+  terrainKey,
   terrainMap,
   terrainNeighborMask,
   terrainOppositeNeighborMask,
@@ -356,11 +357,17 @@ export class WorldScene extends Phaser.Scene {
     const objs = this.store.state.objects.filter((o) =>
       footprintCells(objDef(o), o.gx, o.gy, o.rot).some((c) => c.gx === cell.gx && c.gy === cell.gy),
     );
-    const topObj = objs.find((o) => objDef(o).layer === 'object') ?? objs[0];
+    const patch = objs.find((o) => objDef(o).terrainPaint);
+    const topObj = objs.find((o) => objDef(o).layer === 'object')
+      ?? objs.find((o) => !objDef(o).terrainPaint)
+      ?? patch;
 
     // Multi-select prioritizes toggling objects directly without triggering harvests, pond, or Pipkins
     if (this.store.multiSelectMode || multi) {
-      if (topObj) this.fireAction(this.store.tapObject(topObj.id, { multi: true }));
+      const selectingPatches = this.store.selectedObjects.some((o) => objDef(o).terrainPaint)
+        || !!(this.store.selectedObject && objDef(this.store.selectedObject).terrainPaint);
+      const target = selectingPatches && patch ? patch : topObj;
+      if (target) this.fireAction(this.store.tapObject(target.id, { multi: true }));
       return;
     }
 
@@ -555,6 +562,14 @@ export class WorldScene extends Phaser.Scene {
       .setPosition(-isl.ox, -isl.oy + bob)
       .setTint(sky.tint);
 
+    const bm = this.store.buildMode;
+    const movingSet = new Set(
+      bm.kind === 'move-object' ? [bm.objectId] : bm.kind === 'move-group' ? bm.objectIds : [],
+    );
+    const movingTerrain = new Set(st.objects
+      .filter((o) => movingSet.has(o.id) && objDef(o).terrainPaint)
+      .map((o) => terrainKey(o.gx, o.gy)));
+
     // Sync player-placed custom terrain patches (Snow Patch, Sand Patch) with neighbor-aware transitions
     const liveTerrainKeys = new Set<string>();
     const customTerrain = st.customTerrain ?? {};
@@ -577,7 +592,10 @@ export class WorldScene extends Phaser.Scene {
       }
       if (tspr.texture.key !== texKey) tspr.setTexture(texKey);
       const top = gridToWorld(gx, gy);
-      tspr.setPosition(top.x, top.y + bob).setDepth(-490 + (gx + gy) * 0.001).setTint(sky.tint);
+      tspr.setPosition(top.x, top.y + bob)
+        .setDepth(-490 + (gx + gy) * 0.001)
+        .setTint(sky.tint)
+        .setAlpha(movingTerrain.has(k) ? 0.35 : 1);
     }
     for (const [k, tspr] of this.terrainSprites.entries()) {
       if (!liveTerrainKeys.has(k)) {
@@ -587,12 +605,9 @@ export class WorldScene extends Phaser.Scene {
     }
 
     // Sync placed objects
-    const bm = this.store.buildMode;
-    const movingSet = new Set(
-      bm.kind === 'move-object' ? [bm.objectId] : bm.kind === 'move-group' ? bm.objectIds : [],
-    );
     const liveIds = new Set<string>();
     for (const o of st.objects) {
+      if (objDef(o).terrainPaint) continue;
       liveIds.add(o.id);
       const { key: texKey, flip } = this.objectVisualTex(o, now);
       const meta = spriteMeta(texKey);

@@ -26,6 +26,18 @@ const takeInv = (s: GameState, key: string, n = 1): boolean => {
   return true;
 };
 
+const clearTerrainForObject = (s: GameState, o: PlacedObject) => {
+  if (s.customTerrain && objDef(o).terrainPaint) delete s.customTerrain[terrainKey(o.gx, o.gy)];
+};
+
+const paintTerrainForObject = (s: GameState, o: PlacedObject) => {
+  const paint = objDef(o).terrainPaint;
+  if (paint === 'snow' || paint === 'sand') {
+    s.customTerrain ??= {};
+    s.customTerrain[terrainKey(o.gx, o.gy)] = paint;
+  }
+};
+
 export const placedDecorCount = (s: GameState) =>
   s.objects.filter((o) => !o.locked && !o.plant && (ITEM_BY_ID[o.type]?.price ?? 0) >= 5).length;
 
@@ -290,21 +302,24 @@ export const placeItem: Mutator<{ itemId: string; gx: number; gy: number; rot: 0
   if (!chk.ok) return fail(chk.reason ?? 'Cannot place here');
   takeInv(s, decorKey(def.id));
 
-  if (def.category === 'terrain' || def.terrainPaint) {
-    s.customTerrain ??= {};
-    const key = terrainKey(p.gx, p.gy);
-    const paint = def.terrainPaint ?? (def.id === 'snow_patch' ? 'snow' : def.id === 'sand_patch' ? 'sand' : 'grass');
-    if (paint === 'grass') {
-      delete s.customTerrain[key];
-    } else {
-      s.customTerrain[key] = paint;
+  const paint = def.terrainPaint;
+  if (paint) {
+    const existing = s.objects.findIndex((o) => o.gx === p.gx && o.gy === p.gy && objDef(o).terrainPaint);
+    if (existing >= 0) {
+      const [patch] = s.objects.splice(existing, 1);
+      giveInv(s, decorKey(patch.type));
     }
+    if (s.customTerrain) delete s.customTerrain[terrainKey(p.gx, p.gy)];
     fx.push({ type: 'fx', name: 'sparkle', gx: p.gx, gy: p.gy });
-    return done([], { terrain: paint, gx: p.gx, gy: p.gy });
+    if (paint === 'grass') return done([], { terrain: paint, gx: p.gx, gy: p.gy });
   }
 
   const obj: PlacedObject = { id: newId(s), type: def.id, gx: p.gx, gy: p.gy, rot, placedAt: ctx.now };
   s.objects.push(obj);
+  if (paint) {
+    paintTerrainForObject(s, obj);
+    return done([], { id: obj.id, terrain: paint, gx: p.gx, gy: p.gy });
+  }
   if (def.price >= 5) s.stats.decorPlaced++;
   if (def.category === 'buildings') s.stats.buildingsPlaced++;
   if (def.light) s.stats.lightsPlaced++;
@@ -318,9 +333,11 @@ export const moveObject: Mutator<{ id: string; gx: number; gy: number; rot: 0 | 
   const rot: 0 | 1 = !o.plant && def.rotatable && p.rot === 1 ? 1 : 0;
   const chk = canPlace(s, def, p.gx, p.gy, rot, o.id, { plant: !!o.plant });
   if (!chk.ok) return fail(chk.reason ?? 'Cannot place here');
+  clearTerrainForObject(s, o);
   o.gx = p.gx;
   o.gy = p.gy;
   o.rot = rot;
+  paintTerrainForObject(s, o);
   return done([]);
 });
 
@@ -337,9 +354,11 @@ export const moveObjects: Mutator<{ ids: string[]; dx: number; dy: number }> = w
   const chk = canMoveObjects(s, objs, p.dx, p.dy);
   if (!chk.ok) return fail(chk.reason ?? 'Cannot move selection here');
   if (p.dx !== 0 || p.dy !== 0) {
+    for (const o of objs) clearTerrainForObject(s, o);
     for (const o of objs) {
       o.gx += p.dx;
       o.gy += p.dy;
+      paintTerrainForObject(s, o);
     }
     if (objs.length > 1) {
       fx.push({ type: 'toast', text: `Moved ${objs.length} items!` });
@@ -368,6 +387,7 @@ export const removeObject: Mutator<{ id: string }> = withFinalize((s, _ctx, p) =
   const o = s.objects[i];
   if (o.locked) return fail('This is part of the island');
   s.objects.splice(i, 1);
+  clearTerrainForObject(s, o);
   delete s.forage[o.id];
   if (o.plant) giveInv(s, seedKey(o.type));
   else giveInv(s, decorKey(o.type));
@@ -395,6 +415,7 @@ export const sellPlacedObject: Mutator<{ id: string }> = withFinalize((s, _ctx, 
   const amount = resaleValue(basePrice);
   if (amount <= 0) return fail('This item has no resale value');
   s.objects.splice(i, 1);
+  clearTerrainForObject(s, o);
   delete s.forage[o.id];
   s.stats.itemsSold = (s.stats.itemsSold ?? 0) + 1;
   addTokens(s, amount, fx, o.gx, o.gy);
