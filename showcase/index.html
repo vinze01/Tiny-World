@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tiny World — A little world, just for you. (Cozy Chrome Extension)</title>
+    <meta
+      name="description"
+      content="A cozy miniature floating-island game in your browser. 10 progressive stages, 15 Pipkins, custom snow/sand/starry terrains, offline gardening, and over 116 decorations."
+    />
+    <link rel="icon" type="image/png" href="./assets/icon128.png" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Pixelify+Sans:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <!-- Top Floating Navigation -->
+    <header class="navbar">
+      <div class="nav-container">
+        <a href="#" class="brand">
+          <img src="./assets/icon128.png" alt="Tiny World Icon" class="brand-icon" />
+          <span class="brand-name">Tiny World</span>
+        </a>
+        <nav class="nav-links">
+          <a href="#islands">All 10 Stages</a>
+          <a href="#terrains">Custom Terrains</a>
+          <a href="#features">Features</a>
+          <a href="#pipkins">Pipkins</a>
+          <a href="#surfaces">How to Play</a>
+        </nav>
+        <div class="nav-cta">
+          <button id="showcase-sound" class="btn btn-secondary sound-toggle" type="button" aria-label="Game sounds" aria-pressed="false" hidden>
+            <span class="sound-icon" aria-hidden="true">🔇</span>
+            <span class="sound-label" aria-hidden="true">Sound off</span>
+          </button>
+          <a
+            href="https://chromewebstore.google.com/detail/tiny-world/olhoggikajcnkjjfgmbknjknknfbbobb"
+            target="_blank"
+            rel="noreferrer"
+            class="btn btn-primary"
+          >
+            <span class="btn-icon">⚡</span> Add to Chrome
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="container hero-layout">
+        <div class="hero-content">
+          <div class="pill-tag">
+            <span class="sparkle">✦</span> Chrome Extension &bull; 100% Free &bull; Cozy Offline Diorama
+          </div>
+          <h1 class="hero-title">A little floating world, just for you.</h1>
+          <p class="hero-subtitle">
+            Designed for peaceful 2-minute breaks. Grow blooming flowers, befriend 15 expressive Pipkins,
+            furnish cozy cottages and observatories, paint custom snow &amp; sand terrains, and expand your island across 10 progressive stages.
+          </p>
+
+          <div class="hero-buttons">
+            <a
+              href="https://chromewebstore.google.com/detail/tiny-world/olhoggikajcnkjjfgmbknjknknfbbobb"
+              target="_blank"
+              rel="noreferrer"
+              class="btn btn-primary btn-lg"
+            >
+              <svg class="chrome-icon" viewBox="0 0 24 24" width="20" height="20">
+                <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
+                <circle cx="12" cy="12" r="3.5" fill="currentColor" />
+              </svg>
+              Add to Chrome — Free
+            </a>
+            <a href="#islands" class="btn btn-secondary btn-lg">
+              Explore All 10 Stages ↓
+            </a>
+          </div>
+
+          <div class="hero-trust">
+            <div class="trust-item"><span>🏝️</span> 10 Island Stages</div>
+            <div class="trust-item"><span>❄️</span> Snow &amp; Sand Terrains</div>
+            <div class="trust-item"><span>🪑</span> 116+ Furnishings</div>
+            <div class="trust-item"><span>🐾</span> 15 Unique Pipkins</div>
+            <div class="trust-item"><span>🔒</span> 100% Local (IndexedDB)</div>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="storybook-frame">
+            <div class="frame-header">
+              <span class="dot red"></span>
+              <span class="dot yellow"></span>
+              <span class="dot green"></span>
+              <span class="frame-title">Stage 3 &bull; Crystal Pond</span>
+            </div>
+            <button type="button" class="frame-body" aria-haspopup="dialog" data-lightbox="Stage 3 — Crystal Pond Diorama with Cottage, Campfire &amp; Sunflowers">
+              <img
+                src="./assets/stage3-pond.png"
+                alt="Tiny World Crystal Pond Stage Preview"
+                class="pixel-img hero-img"
+              />
+              <span class="frame-overlay-badge" aria-hidden="true">
+                <span class="pulsing-dot"></span> 2:1 Isometric Pixel Art
+              </span>
+            </button>
+            <div class="garden-demo" hidden>
+              <div class="garden-plot">
+                <img class="pixel-img" src="./assets/garden/daisy-seed.png" alt="" />
+              </div>
+              <div class="garden-info">
+                <h2>Try the garden</h2>
+                <p id="garden-status" role="status">Choose a seed for the empty patch.</p>
+              </div>
+              <button id="garden-action" class="btn btn-secondary" type="button">Plant daisy</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Custom Terrains Showcase -->
+    <section id="terrains" class="section terrains-section">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-tag">CUSTOM LANDSCAPING &amp; ATMOSPHERES</div>
+          <h2 class="section-title">Paint Your Own Biomes &amp; Terrains</h2>
+          <p class="section-desc">
+            Unlike other games that force rigid terrain themes, Tiny World keeps a consistent green meadow foundation
+            and lets <em>you</em> paint <strong>Snow</strong>, <strong>Sand</strong>, and <strong>Starry</strong> ground
+            one tile at a time &mdash; from a single accent patch to an entire island, with procedural edge blending.
+          </p>
+        </div>
+
+        <div class="terrains-grid">
+          <!-- Snow Terrain -->
+          <div class="terrain-card">
+            <button type="button" class="card-media" aria-haspopup="dialog" data-lightbox="Winter Wonderland: Snow Terrain, Christmas Tree, Sleigh, Reindeer &amp; Snowman">
+              <img src="./assets/terrain-snow.png" alt="Snow Terrain with Holiday Furniture" class="pixel-img" />
+              <span class="zoom-hint" aria-hidden="true">🔍 Click to zoom</span>
+              <span class="card-badge snow">❄️ Snow Terrain</span>
+            </button>
+            <div class="card-body">
+              <h3 class="card-title">Winter Wonderland</h3>
+              <p class="card-text">
+                Blanket the whole island in soft powdery snow, right up to the shoreline, with neighbor-aware edges that flow seamlessly between tiles. Furnished with festive Christmas Trees, Santa's Sleigh, Reindeer, Gift Boxes, Candy Canes, and Snowmen.
+              </p>
+              <div class="card-features">
+                <span>🎄 Christmas Tree</span>
+                <span>🦌 Reindeer &amp; Sleigh</span>
+                <span>⛄ Snowman</span>
+                <span>❄️ Full-Island Snow</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sand Terrain -->
+          <div class="terrain-card">
+            <button type="button" class="card-media" aria-haspopup="dialog" data-lightbox="Desert Oasis &amp; Coastal Beach: Sand Terrain, Umbrellas, Tent, Fountain &amp; Palms">
+              <img src="./assets/terrain-sand.png" alt="Sand Terrain with Beach and Desert Furniture" class="pixel-img" />
+              <span class="zoom-hint" aria-hidden="true">🔍 Click to zoom</span>
+              <span class="card-badge sand">🏖️ Sand Terrain</span>
+            </button>
+            <div class="card-body">
+              <h3 class="card-title">Desert Oasis &amp; Sunny Beach</h3>
+              <p class="card-text">
+                Paint the island in warm golden sand with seamless tile-to-tile edges and no dark seams. Features Oasis Fountains, Desert Tents, Beach Umbrellas, Sandcastles, and Date Palms.
+              </p>
+              <div class="card-features">
+                <span>🏖️ Beach Umbrella</span>
+                <span>🏰 Sandcastle</span>
+                <span>🎪 Desert Tent</span>
+                <span>🌴 Oasis Palm</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Starry Night Terrain -->
+          <div class="terrain-card">
+            <button type="button" class="card-media" aria-haspopup="dialog" data-lightbox="Starry Night: Starlight Paving, Campfire Flame, Lantern Glow &amp; Sleeping Pipkins">
+              <img src="./assets/terrain-starry.png" alt="Starry Night with Glowing Lighting Furniture" class="pixel-img" />
+              <span class="zoom-hint" aria-hidden="true">🔍 Click to zoom</span>
+              <span class="card-badge starry">✨ Starry Night</span>
+            </button>
+            <div class="card-body">
+              <h3 class="card-title">Starry Night &amp; Cozy Illumination</h3>
+              <p class="card-text">
+                Deep midnight sky with twinkling constellations and Starlight Paving. Animated campfire flames and garden lanterns cast warm radial light on the ground while Pipkins sleep.
+              </p>
+              <div class="card-features">
+                <span>🔥 Campfire Flame</span>
+                <span>🏮 Lantern Radiance</span>
+                <span>🔭 Brass Telescope</span>
+                <span>💤 Sleepy Pipkins</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- All 10 Island Stages Showcase -->
+    <section id="islands" class="section islands-section">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-tag">COMPLETE ISLAND PROGRESSION</div>
+          <h2 class="section-title">All 10 Progressive Island Stages</h2>
+          <p class="section-desc">
+            Your island expands outward strictly from (0,0). Every unlocked stage keeps your existing buildings,
+            gardens, and furniture exactly where you placed them.
+          </p>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="filter-tabs">
+          <button type="button" class="filter-btn active" data-filter="all" aria-pressed="true">All 10 Stages</button>
+          <button type="button" class="filter-btn" data-filter="early" aria-pressed="false">Stages 1 – 5</button>
+          <button type="button" class="filter-btn" data-filter="late" aria-pressed="false">Stages 6 – 10</button>
+        </div>
+
+        <!-- 10 Stages Grid -->
+        <div class="islands-grid">
+          <!-- Stage 1 -->
+          <div class="island-card" data-category="early">
+            <button type="button" class="card-media" aria-haspopup="dialog" data-lightbox="Stage 1 — Little Meadow (8×8)">
+              <img src="./assets/stage1-meadow.png" alt="Stage 1 Little Meadow" class="pixel-img" />
+              <span class="zoom-hint" aria-hidden="true">🔍 Click to zoom</span>
+              <span class="card-badge">Stage 1 &bull; 8×8</span>
+            </button>
+            <div class="card-body">
+              <h3 class="card-title">1. Little Meadow</h3>
+              <p class="card-text">
+                Your humble beginnings. A peaceful floating plot with wooden benches, a birdhouse, picket fences, garden lanterns, and fresh daisy seedlings with Mossi.
+              </p>
+              <div class="card-features">
+                <span>🪑 Wooden Bench</span>
+                <span>🏠 Birdhouse</span>
+                <span>🏮 Garden Lantern</span>
+                <span>🐾 Mossi</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stage 2 -->
+          <div class="island-card" data-category="early">
+            <button type="button" class="card-media" aria-haspopup="dialog" data-lightbox="Stage 2 — Blooming Grove (12×12)">
+              <img src="./assets/stage2-grove.png" alt="Stage 2 Blooming Grove" class="pixel-img" />
+              <span class="zoom-hint" aria-hidden="true">🔍 Click to zoom</span>
+              <span class="card-badge">Stage 2 &bull; 12×12</span>
+            </button>
+            <div class="card-body">
+              <h3 class="card-title">2. Blooming Grove</h3>
+              <p class="card-text">
+                Expands with fertile soil for storage sheds, garden tea tables, boardwalk timber decks, picnic tables, birch trees, and bluebells alongside Mossi and Sprig.
+              </p>
+              <div class="card-features">
+                <span>🏚️ Storage Shed</span>
+                <span>🍵 Garden Tea Set</span>
+                <span>🪵 Timber Deck</span>
+                <span>🐾 Sprig</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stage 3 -->
+          <div class="island-card" data-category="early">
+            <button type="button" class="card-media" aria-haspopup="dialog" data-lightbox="Stage 3 — Crystal Pond (16×16)">
+              <img src="./assets/stage3-pond.png" alt="Stage 3 Crystal Pond" class="pixel-img" />
+              <span class="zoom-hint" aria-hidden="true">🔍 Click to zoom</span>
+              <span class="card-badge">Stage 3 &bull; 16×16</span>
+            </button>
+            <div class="card-body">
+              <h3 class="card-title">3. Crystal Pond</h3>
+              <p class="card-text">
+                A natural freshwater pond forms in the center with animated water ripples, cozy red-shingled cottages, wishing wells, crackling campfires, and blooming sunflowers with Bloop.
+              </p>
+              <div class="card-features">
+                <span>🏡 Cozy Cottage</span>
+                <span>🌊 Wishing Well</span>
+                <span>🔥 Campfire</span>
+                <span>🌻 Sunflowers</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stage 4 -->
+          <div class="island-card" data-category="early">
+            <button type="button" class="card-media" aria-haspopup="dialog" data-lightbox="Stage 4 — Moonlit Garden (20×20)">
+              <img src="./assets/stage4-garden.png" alt="Stage 4 Moonlit Garden" class="pixel-img" />
+              <span class="zoom-hint" aria-hidden="true">🔍 Click to zoom</span>
+              <span class="card-badge">Stage 4 &bull; 20×20</span>
+            </button>
+            <div class="card-body">
+              <h3 class="card-title">4. Moonlit Garden</h3>
+              <p class="card-text">
+                Glass-walled greenhouses, rose-covered garden gazebos, gazing basins, pink cherry blossom boughs, fairy light posts, and night-blooming moonflowers with Puffin.
+              </p>
+              <div class="card-features">
+                <span>🌿 Greenhouse</span>
+                <span>⛩️ Rose Gazebo</span>
+                <span>🌸 Cherry Blossom</span>
+                <span>✨ Fairy Lights</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stage 5 -->
+          <div class="island-card" data-category="early">
+            <button type="button" class="card-media" aria-haspopup="dialog" data-lightbox="Stage 5 — Cloud Sanctuary (24×24)">
+              <img src="./assets/stage5-sanctuary.png" alt="Stage 5 Cloud Sanctuary" class="pixel-img" />
+              <span class="zoom-hint" aria-hidden="true">🔍 Click to zoom</span>
+              <span class="card-badge">Stage 5 &bull; 24×24</span>
+            </button>
+            <div class="card-body">
+              <h3 class="card-title">5. Cloud Sanctuary</h3>
+              <p class="card-text">
+                A lofty sanctuary above the clouds featuring breezy hammocks, spinning mini windmills, brass telescopes, celestial floating lamps, and mythical golden cloud trees.
+              </p>
+              <div class="card-features">
+                <span>🌾 Mini Windmill</span>
+                <span>🛖 Pipkin Shelter</span>
+                <span>🛋️ Breezy Hammock</span>
+                <span>🔭 Brass Telescope</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stage 6 -->
+          <div class="island-card" data-category="late">
+            <button type="button" class="card-media" aria-haspopup="dialog" data-lightbox="Stage 6 — Frostfall Haven (26×26)">
+              <img src="./assets/stage6-frostfall.png" alt="Stage 6 Frostfall Haven" class="pixel-img" />
+              <span class="zoom-hint" aria-hidden="true">🔍 Click to zoom</span>
+              <span class="card-badge">Stage 6 &bull; 26×26</span>
+            </button>
+            <div class="card-body">
+              <h3 class="card-title">6. Frostfall Haven</h3>
+              <p class="card-text">
+                Highland diorama supporting winter architecture: timber ski lodges, steaming hot cocoa stands, snow-covered pine trees, ice crystals, snow benches, and Frosty &amp; Flurry.
+              </p>
+              <div class="card-features">
+                <span>🏔️ Ski Lodge</span>
+                <span>☕ Cocoa Stand</span>
+                <span>🌲 Snow Pine</span>
+                <span>🪑 Snow Bench</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stage 7 -->
+          <div class="island-card" data-category="late">
+            <button type="button" class="card-media" aria-haspopup="dialog" data-lightbox="Stage 7 — Mistwood Hollow (28×28)">
+              <img src="./assets/stage7-mistwood.png" alt="Stage 7 Mistwood Hollow" class="pixel-img" />
+              <span class="zoom-hint" aria-hidden="true">🔍 Click to zoom</span>
+              <span class="card-badge">Stage 7 &bull; 28×28</span>
+            </button>
+            <div class="card-body">
+              <h3 class="card-title">7. Mistwood Hollow</h3>
+              <p class="card-text">
+                Woodland workshops with smoking chimneys, moss-covered ancient Pipkin statues, crimson amber maples, dewy ferns, wisp braziers, and wooden footbridges across streams.
+              </p>
+              <div class="card-features">
+                <span>🔨 Workshop</span>
+                <span>🗿 Pipkin Statue</span>
+                <span>🍁 Amber Maple</span>
+                <span>🌉 Wooden Bridge</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stage 8 -->
+          <div class="island-card" data-category="late">
+            <button type="button" class="card-media" aria-haspopup="dialog" data-lightbox="Stage 8 — Emberglow Valley (30×30)">
+              <img src="./assets/stage8-emberglow.png" alt="Stage 8 Emberglow Valley" class="pixel-img" />
+              <span class="zoom-hint" aria-hidden="true">🔍 Click to zoom</span>
+              <span class="card-badge">Stage 8 &bull; 30×30</span>
+            </button>
+            <div class="card-body">
+              <h3 class="card-title">8. Emberglow Valley</h3>
+              <p class="card-text">
+                Warm geothermal valley with alchemy huts, cedar soak tubs, glowing basalt spires, copper ember fronds, cast-iron ember braziers, and crackling campfires with Ember and Cinder.
+              </p>
+              <div class="card-features">
+                <span>🧪 Alchemy Hut</span>
+                <span>♨️ Cedar Soak Tub</span>
+                <span>🔥 Ember Brazier</span>
+                <span>🪨 Basalt Spire</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stage 9 -->
+          <div class="island-card" data-category="late">
+            <button type="button" class="card-media" aria-haspopup="dialog" data-lightbox="Stage 9 — Starlight Isles (32×32)">
+              <img src="./assets/stage9-starlight.png" alt="Stage 9 Starlight Isles" class="pixel-img" />
+              <span class="zoom-hint" aria-hidden="true">🔍 Click to zoom</span>
+              <span class="card-badge">Stage 9 &bull; 32×32</span>
+            </button>
+            <div class="card-body">
+              <h3 class="card-title">9. Starlight Isles</h3>
+              <p class="card-text">
+                Domed Moon Observatories, gilded astral sundials, glowing astral willows, nebula lanterns, starlight flagstone paving, and spinning cosmic novablooms with Luna and Astra.
+              </p>
+              <div class="card-features">
+                <span>🔭 Moon Observatory</span>
+                <span>🧭 Astral Sundial</span>
+                <span>🌳 Astral Willow</span>
+                <span>✨ Nebula Lantern</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stage 10 -->
+          <div class="island-card" data-category="late">
+            <button type="button" class="card-media" aria-haspopup="dialog" data-lightbox="Stage 10 — Everdream Paradise (36×36)">
+              <img src="./assets/stage10-everdream.png" alt="Stage 10 Everdream Paradise" class="pixel-img" />
+              <span class="zoom-hint" aria-hidden="true">🔍 Click to zoom</span>
+              <span class="card-badge gold">Stage 10 &bull; 36×36 Max</span>
+            </button>
+            <div class="card-body">
+              <h3 class="card-title">10. Everdream Paradise</h3>
+              <p class="card-text">
+                The grand sovereign diorama! 36×36 tiles supporting Zen dream pavilions, domed planetariums, tiered dream fountains, prismatic Everdream blossoms, and all 15 Pipkins.
+              </p>
+              <div class="card-features">
+                <span>⛩️ Dream Pavilion</span>
+                <span>🪐 Planetarium</span>
+                <span>⛲ Dream Fountain</span>
+                <span>👑 All 15 Pipkins</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Key Features Section -->
+    <section id="features" class="section features-section">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-tag">COZY GAME SYSTEMS</div>
+          <h2 class="section-title">Built for Deliberate, Peaceful Micro-Breaks</h2>
+          <p class="section-desc">
+            No energy meters. No intrusive notifications. No pay-to-win microtransactions.
+            Just a miniature isometric garden running locally in your browser.
+          </p>
+        </div>
+
+        <div class="features-grid">
+          <article class="feature-box" data-demo="meadow">
+            <div class="feature-flip">
+              <div class="feature-face feature-front">
+                <div class="feature-icon">🌿</div>
+                <h3>Unified Meadow Base</h3>
+                <p>
+                  Every stage expands onto a consistent, calming green grass field. No jarring random colors or fragmented ground sections.
+                </p>
+                <button type="button" class="feature-open" aria-controls="feature-meadow" aria-expanded="false" hidden>Try it <span aria-hidden="true">↻</span><span class="sr-only"> · Paint a meadow</span></button>
+              </div>
+              <div class="feature-face feature-back" id="feature-meadow" inert>
+                <div class="feature-demo-header">
+                  <h3>Paint a meadow</h3>
+                  <button type="button" class="feature-close" aria-label="Back from paint a meadow">↶ Back</button>
+                </div>
+                <div class="demo-options" role="group" aria-label="Terrain brush">
+                  <button type="button" data-brush="grass" aria-pressed="true">Grass</button>
+                  <button type="button" data-brush="snow" aria-pressed="false">Snow</button>
+                  <button type="button" data-brush="sand" aria-pressed="false">Sand</button>
+                </div>
+                <div class="demo-tiles meadow-tiles" role="group" aria-label="Paintable meadow"></div>
+                <p class="demo-status" role="status">Choose a brush, then paint a tile.</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="feature-box" data-demo="plants">
+            <div class="feature-flip">
+              <div class="feature-face feature-front">
+                <div class="feature-icon">🌻</div>
+                <h3>Plants Never Wither</h3>
+                <p>
+                  Gardening runs on real timestamps. Close the tab or shut off your PC—your Sunflowers and Moonflowers will mature peacefully while you’re away.
+                </p>
+                <button type="button" class="feature-open" aria-controls="feature-plants" aria-expanded="false" hidden>Try it <span aria-hidden="true">↻</span><span class="sr-only"> · Watch a daisy grow</span></button>
+              </div>
+              <div class="feature-face feature-back" id="feature-plants" inert>
+                <div class="feature-demo-header">
+                  <h3>Watch a daisy grow</h3>
+                  <button type="button" class="feature-close" aria-label="Back from watch a daisy grow">↶ Back</button>
+                </div>
+                <div class="growth-preview">
+                  <div class="garden-plot"><img class="pixel-img" src="./assets/garden/daisy-seed.png" alt="" /></div>
+                  <p class="demo-status">Seed</p>
+                </div>
+                <label for="demo-growth">Preview time away</label>
+                <input id="demo-growth" type="range" min="0" max="4" value="0" aria-valuetext="Seed" />
+              </div>
+            </div>
+          </article>
+
+          <article class="feature-box" data-demo="pipkin" data-pipkin="mossi">
+            <div class="feature-flip">
+              <div class="feature-face feature-front">
+                <div class="feature-icon">🐾</div>
+                <h3>15 Expressive Pipkins</h3>
+                <p>
+                  Befriend Mossi, Bloop, Flurry, Ember, and 11 others. Pet them for hearts, feed them Berry treats, observe their moods, or give them custom names.
+                </p>
+                <button type="button" class="feature-open" aria-controls="feature-pipkin" aria-expanded="false" hidden>Try it <span aria-hidden="true">↻</span><span class="sr-only"> · Play with Mossi</span></button>
+              </div>
+              <div class="feature-face feature-back" id="feature-pipkin" inert>
+                <div class="feature-demo-header">
+                  <h3>Play with Mossi</h3>
+                  <button type="button" class="feature-close" aria-label="Back from play with mossi">↶ Back</button>
+                </div>
+                <span class="pipkin-sprite" style="--sheet: url('./assets/pipkins/mossi-sheet.png'); --habitat: #e2edd7" aria-hidden="true"></span>
+                <div class="demo-options">
+                  <button type="button" data-pipkin-action="pet" aria-label="Pet Mossi in demo">Pet</button>
+                  <button type="button" data-pipkin-action="feed" aria-label="Feed Mossi in demo">Feed</button>
+                </div>
+                <p class="demo-status" role="status">Mossi is curious.</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="feature-box" data-demo="move">
+            <div class="feature-flip">
+              <div class="feature-face feature-front">
+                <div class="feature-icon">🛠️</div>
+                <h3>Multi-Select &amp; Relocation</h3>
+                <p>
+                  Move plants without uprooting them. Shift-click fences or paths to move entire decorative layouts together in one atomic click.
+                </p>
+                <button type="button" class="feature-open" aria-controls="feature-move" aria-expanded="false" hidden>Try it <span aria-hidden="true">↻</span><span class="sr-only"> · Move a group</span></button>
+              </div>
+              <div class="feature-face feature-back" id="feature-move" inert>
+                <div class="feature-demo-header">
+                  <h3>Move a group</h3>
+                  <button type="button" class="feature-close" aria-label="Back from move a group">↶ Back</button>
+                </div>
+                <p class="demo-status" role="status">Select the path and lantern to move them together.</p>
+                <div class="demo-tiles move-tiles" role="group" aria-label="Group move grid"></div>
+                <div class="demo-options">
+                  <button type="button" data-shift="-1">← Left</button>
+                  <button type="button" data-shift="1">Right →</button>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="feature-box" data-demo="shop">
+            <div class="feature-flip">
+              <div class="feature-face feature-front">
+                <div class="feature-icon">🎄</div>
+                <h3>116 Shop Items &amp; Themes</h3>
+                <p>
+                  From Christmas Trees and Snowmen to Desert Tents and Cacti. Filter by Winter, Desert, Lighting, Furniture, or Nature.
+                </p>
+                <button type="button" class="feature-open" aria-controls="feature-shop" aria-expanded="false" hidden>Try it <span aria-hidden="true">↻</span><span class="sr-only"> · Browse the shop</span></button>
+              </div>
+              <div class="feature-face feature-back" id="feature-shop" inert>
+                <div class="feature-demo-header">
+                  <h3>Browse the shop</h3>
+                  <button type="button" class="feature-close" aria-label="Back from browse the shop">↶ Back</button>
+                </div>
+                <div class="demo-options" role="group" aria-label="Shop theme">
+                  <button type="button" data-theme="winter" aria-pressed="true">Winter</button>
+                  <button type="button" data-theme="desert" aria-pressed="false">Desert</button>
+                  <button type="button" data-theme="lighting" aria-pressed="false">Lighting</button>
+                </div>
+                <ul class="shop-samples" aria-label="Sample shop items" aria-live="polite"></ul>
+              </div>
+            </div>
+          </article>
+
+          <article class="feature-box" data-demo="private">
+            <div class="feature-flip">
+              <div class="feature-face feature-front">
+                <div class="feature-icon">🔒</div>
+                <h3>100% Local &amp; Private</h3>
+                <p>
+                  Game saves stay in your browser. Tiny World keeps a recovery backup and supports JSON import and export.
+                </p>
+                <button type="button" class="feature-open" aria-controls="feature-private" aria-expanded="false" hidden>Try it <span aria-hidden="true">↻</span><span class="sr-only"> · Try a local save</span></button>
+              </div>
+              <div class="feature-face feature-back" id="feature-private" inert>
+                <div class="feature-demo-header">
+                  <h3>Try a local save</h3>
+                  <button type="button" class="feature-close" aria-label="Back to Local and Private">↶ Back</button>
+                </div>
+                <div class="local-save-preview">
+                  <span class="pipkin-sprite" style="--sheet: url('./assets/pipkins/mossi-sheet.png'); --habitat: #e2edd7" aria-hidden="true"></span>
+                  <strong class="local-save-name">Mossi</strong>
+                </div>
+                <form class="local-demo-form">
+                  <label for="demo-pipkin-name">Pipkin name</label>
+                  <input id="demo-pipkin-name" name="pipkinName" type="text" value="Mossi" maxlength="14" autocomplete="off" />
+                  <div class="demo-options">
+                    <button type="submit">Save on this device</button>
+                    <button type="button" data-reset-save>Reset</button>
+                  </div>
+                </form>
+                <p class="demo-status" role="status">Rename Mossi and reload to see the saved name.</p>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Pipkins Showcase -->
+    <section id="pipkins" class="section pipkins-section">
+      <div class="container">
+        <div class="pipkins-wrapper">
+          <div class="pipkins-info">
+            <div class="section-tag">MEET YOUR PIPKINS</div>
+            <h2 class="section-title">Curious, Playful &amp; Expressive Companions</h2>
+            <p class="section-desc">
+              Pipkins wander your island, splash in ponds, inspect blooming flowers, and take naps in the sun.
+              Petting them raises their Heart Level and unlocks special reactions!
+            </p>
+          </div>
+
+          <div class="pipkins-screen">
+            <div class="storybook-frame">
+              <div class="frame-header">
+                <span class="dot red"></span>
+                <span class="dot yellow"></span>
+                <span class="dot green"></span>
+                <span class="frame-title">Pipkin Companion Sanctuary</span>
+              </div>
+              <button type="button" class="frame-body" aria-haspopup="dialog" data-lightbox="Pipkins Companion Panel &amp; Affection Roster">
+                <img src="./assets/pipkins-panel.png" alt="Pipkins Panel Preview" class="pixel-img" />
+                <span class="zoom-hint" aria-hidden="true">🔍 Click to inspect companion roster</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="pipkin-gallery" aria-labelledby="pipkin-gallery-title">
+          <div class="pipkin-gallery-header">
+            <h3 id="pipkin-gallery-title">Meet the first five</h3>
+            <div class="pipkin-controls" hidden>
+              <label for="pipkin-pose">Animation</label>
+              <select id="pipkin-pose">
+                <option value="walk">Walk</option>
+                <option value="idle">Idle</option>
+                <option value="happy">Happy</option>
+                <option value="grumpy">Grumpy</option>
+                <option value="curious">Curious</option>
+                <option value="interact">Interact</option>
+                <option value="eat">Eat</option>
+                <option value="sleep">Sleep</option>
+              </select>
+              <label class="pipkin-speed" for="pipkin-fps">
+                <span>Playback speed · <output id="pipkin-fps-value" for="pipkin-fps">9 FPS</output></span>
+                <input id="pipkin-fps" type="range" min="1" max="24" value="9" />
+              </label>
+              <button id="pipkin-playback" type="button">Pause</button>
+            </div>
+          </div>
+          <ul class="pipkin-roster">
+            <li class="pipkin-card" data-pipkin="mossi">
+              <span class="pipkin-sprite" style="--sheet: url('./assets/pipkins/mossi-sheet.png'); --habitat: #e2edd7" aria-hidden="true"></span>
+              <h4>Mossi</h4>
+              <p>Meadow Pipkin</p>
+            </li>
+            <li class="pipkin-card" data-pipkin="bloop">
+              <span class="pipkin-sprite" style="--sheet: url('./assets/pipkins/bloop-sheet.png'); --habitat: #dceef4" aria-hidden="true"></span>
+              <h4>Bloop</h4>
+              <p>Droplet Pipkin</p>
+            </li>
+            <li class="pipkin-card" data-pipkin="ember">
+              <span class="pipkin-sprite" style="--sheet: url('./assets/pipkins/ember-sheet.png'); --habitat: #f8e4d0" aria-hidden="true"></span>
+              <h4>Ember</h4>
+              <p>Flame Pipkin</p>
+            </li>
+            <li class="pipkin-card" data-pipkin="puffin">
+              <span class="pipkin-sprite" style="--sheet: url('./assets/pipkins/puffin-sheet.png'); --habitat: #eae4f4" aria-hidden="true"></span>
+              <h4>Puffin</h4>
+              <p>Cloud Pipkin</p>
+            </li>
+            <li class="pipkin-card" data-pipkin="sprig">
+              <span class="pipkin-sprite" style="--sheet: url('./assets/pipkins/sprig-sheet.png'); --habitat: #f4e1e3" aria-hidden="true"></span>
+              <h4>Sprig</h4>
+              <p>Fungal Pipkin</p>
+            </li>
+          </ul>
+          <p class="pipkin-feedback" role="status" hidden></p>
+          <template id="pipkin-action-template">
+            <div class="pipkin-actions">
+              <button type="button" data-pipkin-action="pet">Pet</button>
+              <button type="button" data-pipkin-action="feed">Feed</button>
+            </div>
+          </template>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chrome Extension Surfaces -->
+    <section id="surfaces" class="section surfaces-section">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-tag">THREE WAYS TO PLAY</div>
+          <h2 class="section-title">Designed for Your Workflow</h2>
+          <p class="section-desc">
+            Play however you like without interrupting your work.
+          </p>
+        </div>
+
+        <div class="surfaces-grid">
+          <div class="surface-card">
+            <div class="surface-badge">Quick Break</div>
+            <button type="button" class="surface-media" aria-haspopup="dialog" data-lightbox="Chrome Toolbar Popup Surface">
+              <img src="./assets/popup-surface.png" alt="Popup surface preview" class="pixel-img" />
+            </button>
+            <h3>Toolbar Popup</h3>
+            <p>Click the island icon in your Chrome toolbar for a quick 30-second harvest, pet your Pipkins, and close it.</p>
+          </div>
+
+          <div class="surface-card">
+            <div class="surface-badge">Companion</div>
+            <button type="button" class="surface-media" aria-haspopup="dialog" data-lightbox="Side Panel Shop &amp; Island Building">
+              <img src="./assets/shop-drawer.png" alt="Side panel drawer preview" class="pixel-img" />
+            </button>
+            <h3>Side Panel</h3>
+            <p>Dock Tiny World alongside your browser window while studying, coding, or listening to music.</p>
+          </div>
+
+          <div class="surface-card">
+            <div class="surface-badge">Full Diorama</div>
+            <button type="button" class="surface-media" aria-haspopup="dialog" data-lightbox="Full-Page World">
+              <img src="./assets/stage10-everdream.png" alt="Full world preview" class="pixel-img" />
+            </button>
+            <h3>Full-Page World</h3>
+            <p>Open in its own browser tab for an expansive diorama view perfect for large-scale landscaping and designing.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Call to Action Banner -->
+    <section class="cta-banner">
+      <div class="container cta-content">
+        <h2>Start your little floating island today.</h2>
+        <p>Free to play &bull; No ads &bull; No account required</p>
+        <div class="cta-actions">
+          <a
+            href="https://chromewebstore.google.com/detail/tiny-world/olhoggikajcnkjjfgmbknjknknfbbobb"
+            target="_blank"
+            rel="noreferrer"
+            class="btn btn-primary btn-lg"
+          >
+            ⚡ Add to Chrome for Free
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container footer-content">
+        <div class="footer-left">
+          <img src="./assets/icon128.png" alt="Tiny World" class="footer-logo" />
+          <div>
+            <div class="footer-brand">Tiny World</div>
+            <div class="footer-tagline">A cozy miniature diorama, handcrafted with pure pixel art.</div>
+          </div>
+        </div>
+        <div class="footer-right">
+          <a href="https://buymeacoffee.com/vinze" target="_blank" rel="noopener noreferrer" class="footer-link">☕ Support Creator</a>
+          <span class="sep" aria-hidden="true">&bull;</span>
+          <a href="#islands" class="footer-link">10 Stages</a>
+          <span class="sep">&bull;</span>
+          <a href="#terrains" class="footer-link">Terrains</a>
+          <span class="sep">&bull;</span>
+          <a href="#features" class="footer-link">Features</a>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Fullscreen Pixel-Art Lightbox Modal -->
+    <dialog id="lightbox" class="lightbox" aria-labelledby="lightbox-title">
+      <div class="lightbox-dialog">
+        <div class="lightbox-header">
+          <span id="lightbox-title" class="lightbox-title">Image Preview</span>
+          <button type="button" class="lightbox-close" aria-label="Close image preview" autofocus>&times;</button>
+        </div>
+        <div class="lightbox-body">
+          <img id="lightbox-img" alt="Fullscreen Pixel Preview" class="pixel-img" />
+        </div>
+      </div>
+    </dialog>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

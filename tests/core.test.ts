@@ -761,8 +761,8 @@ describe('unified green island terrain, customizable terrain patches & seasonal/
     expect(customTerrainAt(s, 2, 3)).toBe('snow');
     expect(customTerrainAt(s, 5, 1)).toBe('snow');
     expect(effectiveTerrainAt(s, 2, 3)).toBe('snow');
-    // Existing objects are 100% preserved
-    expect(s.objects.length).toBe(objCountBefore);
+    // Both terrain patches have identities while the objects above them stay in place.
+    expect(s.objects.length).toBe(objCountBefore + 2);
     expect(s.objects.some((o) => o.type === 'path' && o.gx === 2 && o.gy === 3)).toBe(true);
     expect(s.objects.some((o) => o.plant && o.gx === 2 && o.gy === 3)).toBe(true);
     expect(s.objects.some((o) => o.type === 'cottage' && o.gx === 5 && o.gy === 1)).toBe(true);
@@ -772,6 +772,7 @@ describe('unified green island terrain, customizable terrain patches & seasonal/
 
     // Transform (2, 3) from Snow to Sand, and place adjacent Sand at (3, 3) to verify neighbor transition masks
     expect(run(s, 'placeItem', { itemId: 'sand_patch', gx: 2, gy: 3, rot: 0 }).ok).toBe(true);
+    expect(s.inventory[decorKey('snow_patch')]).toBe(2);
     expect(run(s, 'placeItem', { itemId: 'sand_patch', gx: 3, gy: 3, rot: 0 }).ok).toBe(true);
     expect(run(s, 'placeItem', { itemId: 'snow_patch', gx: 2, gy: 2, rot: 0 }).ok).toBe(true);
     expect(customTerrainAt(s, 2, 3)).toBe('sand');
@@ -780,6 +781,7 @@ describe('unified green island terrain, customizable terrain patches & seasonal/
 
     // Restore (2, 3) back to default meadow Green Grass using grass_patch
     expect(run(s, 'placeItem', { itemId: 'grass_patch', gx: 2, gy: 3, rot: 0 }).ok).toBe(true);
+    expect(s.inventory[decorKey('sand_patch')]).toBe(1);
     expect(customTerrainAt(s, 2, 3)).toBeUndefined();
     expect(effectiveTerrainAt(s, 2, 3)).toBe('grass');
 
@@ -789,6 +791,41 @@ describe('unified green island terrain, customizable terrain patches & seasonal/
     expect(customTerrainAt(reloaded, 3, 3)).toBe('sand');
     expect(customTerrainAt(reloaded, 2, 2)).toBe('snow');
     expect(customTerrainAt(reloaded, 5, 1)).toBe('snow');
+  });
+
+  it('restores editable patches from paint-only saves and keeps terrain in sync with their actions', () => {
+    const old = mk();
+    old.customTerrain = { '2,3': 'snow', '3,3': 'sand', '4,5': 'snow' };
+    const s = validateState(old, T0)!;
+    const snow = objectAt(s, 2, 3)!;
+    const sand = objectAt(s, 3, 3)!;
+    expect(snow.type).toBe('snow_patch');
+    expect(sand.type).toBe('sand_patch');
+    expect(validateState(s, T0)?.objects).toEqual(s.objects);
+
+    const ids = [snow.id, sand.id];
+    expect(run(s, 'moveObjects', { ids, dx: 0, dy: 1 }).ok).toBe(false); // Sand would enter the pond.
+    expect(s.customTerrain).toEqual(old.customTerrain);
+    expect(run(s, 'moveObject', { id: snow.id, gx: 3, gy: 3, rot: 0 }).ok).toBe(false);
+    expect(run(s, 'moveObject', { id: snow.id, gx: 3, gy: 5, rot: 0 }).ok).toBe(true);
+    expect(run(s, 'moveObject', { id: sand.id, gx: 2, gy: 5, rot: 0 }).ok).toBe(true);
+    expect(run(s, 'moveObjects', { ids, dx: 1, dy: 0 }).ok).toBe(false); // Another patch occupies the target.
+    expect(run(s, 'moveObjects', { ids, dx: -1, dy: 0 }).ok).toBe(true);
+    expect(s.customTerrain).toEqual({ '1,5': 'sand', '2,5': 'snow', '4,5': 'snow' });
+
+    const snowUnderPath = objectAt(s, 4, 5)!;
+    give(s, decorKey('star_paving'));
+    expect(run(s, 'placeItem', { itemId: 'star_paving', gx: 4, gy: 5, rot: 0 }).ok).toBe(true);
+    expect(objectAt(s, 4, 5)?.type).toBe('star_paving');
+    expect(run(s, 'removeObject', { id: snowUnderPath.id }).ok).toBe(true);
+    expect(s.inventory[decorKey('snow_patch')]).toBe(1);
+    expect(objectAt(s, 4, 5)?.type).toBe('star_paving');
+
+    const sale = run(s, 'sellPlacedObject', { id: sand.id });
+    expect(sale.ok).toBe(true);
+    expect(sale.data?.amount).toBe(resaleValue(ITEM_BY_ID.sand_patch.price));
+    expect(s.customTerrain).toEqual({ '2,5': 'snow' });
+    expect(validateState(s, T0)?.objects).toEqual(s.objects);
   });
 
   it('supports purchasing, placing, and rotating all Winter, Christmas, Desert, and Beach/Summer decorations', () => {

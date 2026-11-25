@@ -254,15 +254,19 @@ export const canPlace = (
   ignoreId?: string,
   opts: { plant?: boolean } = {},
 ): PlaceCheck => {
-  if (def.category === 'terrain' || def.terrainPaint) {
+  if (def.terrainPaint) {
     const t = terrainAt(state.stage, gx, gy);
     if (t === 'void') return { ok: false, reason: 'Out of the island' };
     if (isWaterTerrain(t)) return { ok: false, reason: "Can't place terrain on water" };
     const cur = customTerrainAt(state, gx, gy);
-    const paint = def.terrainPaint ?? (def.id === 'snow_patch' ? 'snow' : def.id === 'sand_patch' ? 'sand' : 'grass');
+    const paint = def.terrainPaint;
     if (paint === 'grass') {
       if (!cur) return { ok: false, reason: 'Already green grass here' };
       return { ok: true };
+    }
+    if (ignoreId && cur) {
+      const sameTile = state.objects.some((o) => o.id === ignoreId && o.gx === gx && o.gy === gy);
+      return sameTile ? { ok: true } : { ok: false, reason: 'A terrain patch is already here' };
     }
     if (cur === paint) {
       return { ok: false, reason: paint === 'snow' ? 'Already snowy here' : 'Already sandy here' };
@@ -283,7 +287,7 @@ export const canPlace = (
     }
     for (const o of others) {
       const od = objDef(o);
-      if (!od) continue;
+      if (!od || od.terrainPaint) continue;
       const oc = footprintCells(od, o.gx, o.gy, o.rot);
       if (!oc.some((p) => p.gx === c.gx && p.gy === c.gy)) continue;
       if (od.layer === def.layer) return { ok: false, reason: 'Something is already here' };
@@ -295,7 +299,7 @@ export const canPlace = (
 
 /** Validate shifting a group of placed objects by `(dx, dy)` atomically, ignoring collisions among moving items themselves. */
 export const canMoveObjects = (
-  state: Pick<GameState, 'stage' | 'objects'>,
+  state: Pick<GameState, 'stage' | 'objects' | 'customTerrain'>,
   objs: PlacedObject[],
   dx: number,
   dy: number,
@@ -307,6 +311,10 @@ export const canMoveObjects = (
 
   const movingIds = new Set(objs.map((o) => o.id));
   const placedTargets: PlacedObject[] = state.objects.filter((o) => !movingIds.has(o.id));
+  const customTerrain = { ...state.customTerrain };
+  for (const o of objs) {
+    if (objDef(o)?.terrainPaint) delete customTerrain[terrainKey(o.gx, o.gy)];
+  }
   const blockedIds: string[] = [];
   let firstReason: string | undefined;
 
@@ -320,7 +328,7 @@ export const canMoveObjects = (
     const rot: 0 | 1 = !o.plant && def.rotatable && o.rot === 1 ? 1 : 0;
     const tx = o.gx + dx;
     const ty = o.gy + dy;
-    const chk = canPlace({ stage: state.stage, objects: placedTargets }, def, tx, ty, rot, undefined, {
+    const chk = canPlace({ stage: state.stage, objects: placedTargets, customTerrain }, def, tx, ty, rot, o.id, {
       plant: !!o.plant,
     });
     if (!chk.ok) {
@@ -328,6 +336,9 @@ export const canMoveObjects = (
       firstReason ??= chk.reason ?? 'Cannot move selection here';
     } else {
       placedTargets.push({ ...o, gx: tx, gy: ty, rot });
+      if (def.terrainPaint === 'snow' || def.terrainPaint === 'sand') {
+        customTerrain[terrainKey(tx, ty)] = def.terrainPaint;
+      }
     }
   }
 
@@ -353,13 +364,17 @@ export const walkGrid = (state: Pick<GameState, 'stage' | 'objects'>): boolean[]
 };
 
 export const objectAt = (state: Pick<GameState, 'objects'>, gx: number, gy: number, layer?: 'object' | 'ground'): PlacedObject | undefined => {
+  let patch: PlacedObject | undefined;
   for (const o of state.objects) {
     const d = objDef(o);
     if (!d) continue;
     if (layer && d.layer !== layer) continue;
-    if (footprintCells(d, o.gx, o.gy, o.rot).some((c) => c.gx === gx && c.gy === gy)) return o;
+    if (footprintCells(d, o.gx, o.gy, o.rot).some((c) => c.gx === gx && c.gy === gy)) {
+      if (!d.terrainPaint) return o;
+      patch ??= o;
+    }
   }
-  return undefined;
+  return patch;
 };
 
 /** Breadth-first path on the walk grid (4-neighbour). Returns cells excluding start. */

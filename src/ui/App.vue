@@ -165,18 +165,16 @@ const cellsFor = (o: PlacedObject) => {
   return def ? footprintCells(def, o.gx, o.gy, o.rot ?? 0) : [{ gx: o.gx, gy: o.gy }];
 };
 
-const overlappingObject = computed(() => {
+const overlappingObjects = computed(() => {
   const cur = store.selectedObject;
-  if (!cur) return null;
+  if (!cur) return [];
   const curCells = new Set(cellsFor(cur).map((c) => `${c.gx},${c.gy}`));
-  const other = store.state.objects.find(
-    (o) => o.id !== cur.id && cellsFor(o).some((c) => curCells.has(`${c.gx},${c.gy}`)),
-  );
-  if (!other) return null;
-  const label = other.plant
-    ? PLANT_BY_ID[other.type as PlantId]?.name ?? other.type
-    : ITEM_BY_ID[other.type]?.name ?? other.type;
-  return { id: other.id, label };
+  return store.state.objects
+    .filter((o) => o.id !== cur.id && cellsFor(o).some((c) => curCells.has(`${c.gx},${c.gy}`)))
+    .map((o) => ({
+      id: o.id,
+      label: o.plant ? PLANT_BY_ID[o.type as PlantId]?.name ?? o.type : ITEM_BY_ID[o.type]?.name ?? o.type,
+    }));
 });
 
 const selectedPlantInfo = computed(() => {
@@ -711,7 +709,8 @@ const groupMoveStatus = computed(() => {
         </button>
         <button type="button" class="tw-btn" @click="store.removeObject(selectedPlantInfo.id)">Uproot</button>
         <button
-          v-if="overlappingObject"
+          v-for="overlappingObject in overlappingObjects"
+          :key="overlappingObject.id"
           type="button"
           class="tw-btn tw-btn-sm"
           @click="store.selectedObjectId = overlappingObject.id"
@@ -822,7 +821,8 @@ const groupMoveStatus = computed(() => {
         </template>
 
         <button
-          v-if="overlappingObject"
+          v-for="overlappingObject in overlappingObjects"
+          :key="overlappingObject.id"
           type="button"
           class="tw-btn tw-btn-sm"
           @click="store.selectedObjectId = overlappingObject.id"
